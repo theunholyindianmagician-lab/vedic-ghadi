@@ -106,3 +106,17 @@ def test_python_ts_parity(args):
         assert py["by_meridian"][m]["day_subdivision"]["muhurta_index"] == ts["by_meridian"][m]["day_subdivision"]["muhurta_index"]
         assert abs(py["by_meridian"][m]["kali_civil_days"]
                    - ts["by_meridian"][m]["kali_civil_days"]) < 1e-5
+
+    # Full 12-meridian registry parity
+    assert set(py["meridians"].keys()) == set(ts["meridians"].keys()), \
+        f"Py {sorted(py['meridians'].keys())} vs TS {sorted(ts['meridians'].keys())}"
+    for mid in py["meridians"]:
+        p = py["meridians"][mid]
+        t = ts["meridians"][mid]
+        assert p["vara"]["vara_name"] == t["vara"]["vara_name"], f"vara differs at {mid}"
+        assert p["day_subdivision"]["ghati_index"] == t["day_subdivision"]["ghati_index"], f"ghaṭi differs at {mid}"
+        assert p["day_subdivision"]["muhurta_index"] == t["day_subdivision"]["muhurta_index"], f"muhūrta differs at {mid}"
+        assert p["day_subdivision"]["prana_index"] == t["day_subdivision"]["prana_index"], f"prāṇa differs at {mid}"
+        assert p["lon_deg"] == t["lon_deg"], f"lon differs at {mid}"
+        assert p["category"] == t["category"], f"category differs at {mid}"
+        assert abs(p["kali_civil_days"] - t["kali_civil_days"]) < 1e-5, f"K differs at {mid}"

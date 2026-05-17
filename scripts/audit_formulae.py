@@ -380,7 +380,59 @@ else:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-section("12a · Parallel meridian views (Ujjayinī ⟷ Kāmākhyā)")
+section("12a · Full meridian registry (12 × 4 categories)")
+# ═══════════════════════════════════════════════════════════════════════════
+from vedic_ghadi.substrate import MERIDIAN_REGISTRY, MERIDIAN_CATEGORIES, UJJAIN_LON_DEG
+ms = stamp["meridians"]
+check("12 meridians in registry",       len(MERIDIAN_REGISTRY) == 12)
+check("4 categories (sacred/char-dham/modern/universal)",
+      len(MERIDIAN_CATEGORIES) == 4)
+check("All 12 IDs present in stamp.meridians", len(ms) == 12)
+check("Sacred Trinity present (Kāmākhyā · Ujjayinī · Kāśī)",
+      all(k in ms for k in ("kamakhya", "ujjain", "kashi")))
+check("Char Dham complete (Badrīnāth · Dvārkā · Rāmeśvaram · Purī)",
+      all(k in ms for k in ("badrinath", "dwarka", "rameshwaram", "puri")))
+check("Modern metros present (Delhi · Mumbai · Bengaluru)",
+      all(k in ms for k in ("delhi", "mumbai", "bengaluru")))
+check("Universal anchors present (Greenwich · NYC)",
+      all(k in ms for k in ("greenwich", "new_york")))
+
+# Offset identity for every meridian
+all_offsets_correct = all(
+    abs(v["offset_from_ujjain_days"]
+        - (v["lon_deg"] - UJJAIN_LON_DEG) / 15.0 / 24.0) < 1e-6
+    for v in ms.values()
+)
+check("Offset identity holds for ALL 12 meridians", all_offsets_correct)
+
+# Ujjain has zero offset
+check("Ujjain offset = 0",
+      abs(ms["ujjain"]["offset_from_ujjain_days"]) < 1e-9)
+# Greenwich ~-303 min (Ujjain is 5h03m east of Greenwich)
+check(f"Greenwich offset ≈ −303 min (got {ms['greenwich']['offset_from_ujjain_min']})",
+      -310 < ms["greenwich"]["offset_from_ujjain_min"] < -300)
+# NYC ~-599 min
+check(f"New York offset ≈ −599 min (got {ms['new_york']['offset_from_ujjain_min']})",
+      -610 < ms["new_york"]["offset_from_ujjain_min"] < -590)
+# Kāmākhyā ~+64 min
+check(f"Kāmākhyā offset ≈ +64 min (got {ms['kamakhya']['offset_from_ujjain_min']})",
+      63 < ms["kamakhya"]["offset_from_ujjain_min"] < 65)
+# Kāśī ~+29 min
+check(f"Kāśī offset ≈ +29 min (got {ms['kashi']['offset_from_ujjain_min']})",
+      28 < ms["kashi"]["offset_from_ujjain_min"] < 30)
+
+# Every meridian has valid vara/day_subdivision
+all_valid = all(
+    0 <= v["vara"]["vara_index"] <= 6
+    and 1 <= v["day_subdivision"]["muhurta_index"] <= 30
+    and 1 <= v["day_subdivision"]["ghati_index"] <= 60
+    and 1 <= v["day_subdivision"]["prana_index"] <= 6
+    for v in ms.values()
+)
+check("Every meridian has valid vāra + day-subdivision", all_valid)
+
+
+section("12b · Parallel meridian views (Ujjayinī ⟷ Kāmākhyā)")
 # ═══════════════════════════════════════════════════════════════════════════
 bm = stamp["by_meridian"]
 check("by_meridian.ujjain present",  "ujjain" in bm)
@@ -403,7 +455,7 @@ check("Astronomical layers NOT duplicated (meridian-independent)",
       "month_kamakhya" not in stamp and "tithi_kamakhya" not in stamp)
 
 
-section("12b · Edge cases & boundaries")
+section("12c · Edge cases & boundaries")
 # ═══════════════════════════════════════════════════════════════════════════
 # Day boundary: at IST midnight, did we cross to next civil day correctly?
 late = ghadi_at(2026, 5, 17, 23, 59, 59.999, 5.5)

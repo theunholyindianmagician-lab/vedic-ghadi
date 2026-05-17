@@ -309,8 +309,84 @@ def vedic_time_of_day(kali_civil_days: float) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# ◈ MERIDIAN REGISTRY — 12 named meridians in 4 categories
+# Adding a new one is one line. The math generalizes immediately.
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Each entry: (id, label_en, label_hi, label_sub, lon_deg, category)
+# Categories: sacred · char-dham · modern · universal
+# (12 = 2² × 3 — substrate-aligned grid: 3 × 4)
+
+MERIDIAN_REGISTRY = (
+    # ── KAAL / Sacred (3) ─────────────────────────────────────────────────
+    ("kamakhya",    "Kāmākhyā Devī",         "कामाख्या",      "KAAL symbolic origin · Sovereign East · Shakti-pīṭha",   91.705900, "sacred"),
+    ("ujjain",      "Ujjayinī (Avantī)",     "उज्जयिनी",      "Sūrya Siddhānta canonical meridian · केन्द्र",             75.778889, "sacred"),
+    ("kashi",       "Kāśī (Varanasi)",       "काशी",          "Shiva · Mokṣa-purī · 12 Jyotirliṅga",                      83.010300, "sacred"),
+
+    # ── Char Dham (4) — 4 directions ──────────────────────────────────────
+    ("badrinath",   "Badrīnāth",             "बद्रीनाथ",      "Char Dham · उत्तर · Viṣṇu",                                79.493800, "char-dham"),
+    ("dwarka",      "Dvārkā",                "द्वारका",        "Char Dham · पश्चिम · Kṛṣṇa",                              68.967800, "char-dham"),
+    ("rameshwaram", "Rāmeśvaram",            "रामेश्वरम्",     "Char Dham · दक्षिण · Śiva",                                79.312900, "char-dham"),
+    ("puri",        "Purī (Jagannātha)",     "पुरी",          "Char Dham · पूर्व · Viṣṇu",                                85.824500, "char-dham"),
+
+    # ── Modern Bhārat (3) ─────────────────────────────────────────────────
+    ("delhi",       "Delhi (Indraprastha)",  "दिल्ली",         "राजधानी · IST anchor",                                     77.209000, "modern"),
+    ("mumbai",      "Mumbai (Bombay)",       "मुम्बई",         "वाणिज्य राजधानी · Financial",                              72.877700, "modern"),
+    ("bengaluru",   "Bengaluru",             "बेंगलुरु",        "तकनीकी केन्द्र · Tech",                                   77.594600, "modern"),
+
+    # ── Universal (2) ─────────────────────────────────────────────────────
+    ("greenwich",   "Greenwich (Royal Obs.)", "ग्रीनिच",       "Universal reference · Prime Meridian · 0°",               0.000000,  "universal"),
+    ("new_york",    "New York City",          "न्यूयॉर्क",      "Western Hemisphere · −74°",                              -74.006000, "universal"),
+)
+
+MERIDIAN_CATEGORIES = (
+    ("sacred",     "🔱 सनातन · Sacred Trinity (KAAL)"),
+    ("char-dham",  "🛕 चार धाम · Four Cardinal Dhāma"),
+    ("modern",     "🏙️  आधुनिक भारत · Modern India"),
+    ("universal",  "🌍 वैश्विक · Universal references"),
+)
+
+
+def compute_meridian_views(kali_days_ujjain: float) -> dict:
+    """Compute parallel views for EVERY meridian in the registry.
+
+    Returns {meridian_id: full_view_dict, ...}. The Ujjain K is the
+    reference; for any other meridian M:
+        K_M = K_ujjain + (LON_M − UJJAIN_LON) / 15 / 24
+    """
+    out = {}
+    for (mid, en, hi, sub, lon, cat) in MERIDIAN_REGISTRY:
+        offset_days = (lon - UJJAIN_LON_DEG) / 15.0 / 24.0
+        k_m = kali_days_ujjain + offset_days
+        out[mid] = {
+            "id": mid,
+            "label_en": en,
+            "label_hi": hi,
+            "label_sub": sub,
+            "category": cat,
+            "lon_deg": lon,
+            "lmt_offset_h": round(lon / 15.0, 6),
+            "offset_from_ujjain_days": round(offset_days, 6),
+            "offset_from_ujjain_min": round(offset_days * 1440, 2),
+            "kali_civil_days": round(k_m, 6),
+            "vara": vedic_vara_at_kali_days(k_m),
+            "day_subdivision": vedic_time_of_day(k_m),
+        }
+    return out
+
+
+def meridian_groups() -> dict:
+    """{category_id: [meridian_id, ...]} for UI grouping."""
+    g = {cat: [] for cat, _label in MERIDIAN_CATEGORIES}
+    for (mid, _e, _h, _s, _l, cat) in MERIDIAN_REGISTRY:
+        g[cat].append(mid)
+    return g
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # ◈ PARALLEL MERIDIAN VIEWS — Ujjayinī (Sūrya Siddhānta canonical) ⟷
 #                              Kāmākhyā (KAAL symbolic origin)
+# Backward-compat shim — keeps the v1.2.0 by_meridian.{ujjain,kamakhya} API.
 # ═══════════════════════════════════════════════════════════════════════════
 # The existing `kali_civil_days` value is Ujjain-LMT-anchored (the math
 # simplifies to K = jd_ut + UJJAIN_LMT/24 − epoch). To get a TRUE
@@ -437,6 +513,10 @@ def kala_substrate_stamp(
         # Legacy top-level vara_layer + day_subdivision are kept (= Ujjain
         # values) for backward compat; new code should prefer by_meridian.
         "by_meridian": by_meridian_views(kali_days),
+        # NEW v1.3.0 — full meridian registry (12 meridians × 4 categories)
+        "meridians": compute_meridian_views(kali_days),
+        "meridian_groups": meridian_groups(),
+        "meridian_categories": list(MERIDIAN_CATEGORIES),
         "substrate_alignment": VEDIC_TIME_SUBSTRATE,
         "kamakhya_meridian_offset_h": KAMAKHYA_LMT_OFFSET_H,
         "discipline": {
@@ -459,6 +539,8 @@ __all__ = [
     "MAHAYUGA_YEARS", "MAHAYUGA_CIVIL_DAYS", "MAHAYUGA_SIDEREAL_DAYS",
     "KALI_DAYS_PER_YEAR", "KAMAKHYA_MINUS_UJJAIN_DAYS",
     "by_meridian_views",
+    "MERIDIAN_REGISTRY", "MERIDIAN_CATEGORIES",
+    "compute_meridian_views", "meridian_groups",
     "MASA_NAMES", "MASA_DEV", "VARA_NAMES", "VARA_DEV", "VARA_LORD",
     "SAMVATSARA_NAMES", "PAKSHA_NAMES", "PAKSHA_DEV", "TITHI_NAMES",
     "VEDIC_TIME_SUBSTRATE",

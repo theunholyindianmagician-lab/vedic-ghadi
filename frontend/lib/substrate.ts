@@ -344,6 +344,9 @@ export interface SubstrateStamp {
   karana_layer: KaranaLayer
   day_subdivision: DaySubdivision
   by_meridian: ByMeridian
+  meridians: Record<string, MeridianFullView>
+  meridian_groups: Record<MeridianCategory, string[]>
+  meridian_categories: readonly [MeridianCategory, string][]
   substrate_alignment: typeof VEDIC_TIME_SUBSTRATE
   kamakhya_meridian_offset_h: number
 }
@@ -362,6 +365,82 @@ function meridianView(
     vara: vedicVaraAtKaliDays(kaliDays),
     day_subdivision: vedicTimeOfDay(kaliDays),
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ◈ Meridian registry — 12 named meridians × 4 categories (TS port)
+// ═══════════════════════════════════════════════════════════════════════════
+
+type MeridianCategory = "sacred" | "char-dham" | "modern" | "universal"
+
+interface MeridianRegistryEntry {
+  id: string
+  label_en: string
+  label_hi: string
+  label_sub: string
+  lon_deg: number
+  category: MeridianCategory
+}
+
+export const MERIDIAN_REGISTRY: readonly MeridianRegistryEntry[] = [
+  { id: "kamakhya",    label_en: "Kāmākhyā Devī",         label_hi: "कामाख्या",      label_sub: "KAAL symbolic origin · Sovereign East · Shakti-pīṭha",   lon_deg:  91.705900, category: "sacred" },
+  { id: "ujjain",      label_en: "Ujjayinī (Avantī)",     label_hi: "उज्जयिनी",      label_sub: "Sūrya Siddhānta canonical meridian · केन्द्र",            lon_deg:  75.778889, category: "sacred" },
+  { id: "kashi",       label_en: "Kāśī (Varanasi)",       label_hi: "काशी",         label_sub: "Shiva · Mokṣa-purī · 12 Jyotirliṅga",                     lon_deg:  83.010300, category: "sacred" },
+  { id: "badrinath",   label_en: "Badrīnāth",             label_hi: "बद्रीनाथ",      label_sub: "Char Dham · उत्तर · Viṣṇu",                                lon_deg:  79.493800, category: "char-dham" },
+  { id: "dwarka",      label_en: "Dvārkā",                label_hi: "द्वारका",        label_sub: "Char Dham · पश्चिम · Kṛṣṇa",                              lon_deg:  68.967800, category: "char-dham" },
+  { id: "rameshwaram", label_en: "Rāmeśvaram",            label_hi: "रामेश्वरम्",    label_sub: "Char Dham · दक्षिण · Śiva",                                lon_deg:  79.312900, category: "char-dham" },
+  { id: "puri",        label_en: "Purī (Jagannātha)",     label_hi: "पुरी",         label_sub: "Char Dham · पूर्व · Viṣṇu",                                lon_deg:  85.824500, category: "char-dham" },
+  { id: "delhi",       label_en: "Delhi (Indraprastha)",  label_hi: "दिल्ली",        label_sub: "राजधानी · IST anchor",                                     lon_deg:  77.209000, category: "modern" },
+  { id: "mumbai",      label_en: "Mumbai (Bombay)",       label_hi: "मुम्बई",        label_sub: "वाणिज्य राजधानी · Financial",                              lon_deg:  72.877700, category: "modern" },
+  { id: "bengaluru",   label_en: "Bengaluru",             label_hi: "बेंगलुरु",       label_sub: "तकनीकी केन्द्र · Tech",                                    lon_deg:  77.594600, category: "modern" },
+  { id: "greenwich",   label_en: "Greenwich (Royal Obs.)", label_hi: "ग्रीनिच",      label_sub: "Universal reference · Prime Meridian · 0°",                lon_deg:   0.000000, category: "universal" },
+  { id: "new_york",    label_en: "New York City",         label_hi: "न्यूयॉर्क",      label_sub: "Western Hemisphere · −74°",                               lon_deg: -74.006000, category: "universal" },
+] as const
+
+export const MERIDIAN_CATEGORIES: readonly [MeridianCategory, string][] = [
+  ["sacred",    "🔱 सनातन · Sacred Trinity (KAAL)"],
+  ["char-dham", "🛕 चार धाम · Four Cardinal Dhāma"],
+  ["modern",    "🏙️  आधुनिक भारत · Modern India"],
+  ["universal", "🌍 वैश्विक · Universal references"],
+] as const
+
+export interface MeridianFullView extends MeridianView {
+  id: string
+  category: MeridianCategory
+  offset_from_ujjain_days: number
+  offset_from_ujjain_min: number
+}
+
+export function computeMeridianViews(
+  kaliDaysUjjain: number,
+): Record<string, MeridianFullView> {
+  const out: Record<string, MeridianFullView> = {}
+  for (const m of MERIDIAN_REGISTRY) {
+    const offsetDays = (m.lon_deg - UJJAIN_LON_DEG) / 15.0 / 24.0
+    const kM = kaliDaysUjjain + offsetDays
+    out[m.id] = {
+      id: m.id,
+      label_en: m.label_en,
+      label_hi: m.label_hi,
+      label_sub: m.label_sub,
+      category: m.category,
+      lon_deg: m.lon_deg,
+      lmt_offset_h: Math.round((m.lon_deg / 15.0) * 1e6) / 1e6,
+      offset_from_ujjain_days: Math.round(offsetDays * 1e6) / 1e6,
+      offset_from_ujjain_min: Math.round(offsetDays * 1440 * 1e2) / 1e2,
+      kali_civil_days: Math.round(kM * 1e6) / 1e6,
+      vara: vedicVaraAtKaliDays(kM),
+      day_subdivision: vedicTimeOfDay(kM),
+    }
+  }
+  return out
+}
+
+export function meridianGroups(): Record<MeridianCategory, string[]> {
+  const g: Record<string, string[]> = {}
+  for (const [cat] of MERIDIAN_CATEGORIES) g[cat] = []
+  for (const m of MERIDIAN_REGISTRY) g[m.category].push(m.id)
+  return g as Record<MeridianCategory, string[]>
 }
 
 export function byMeridianViews(kaliDaysUjjain: number): ByMeridian {
@@ -418,6 +497,9 @@ export function kalaSubstrateStamp(
     karana_layer: karanaAtKaliDays(kaliDays),
     day_subdivision: vedicTimeOfDay(kaliDays),
     by_meridian: byMeridianViews(kaliDays),
+    meridians: computeMeridianViews(kaliDays),
+    meridian_groups: meridianGroups(),
+    meridian_categories: MERIDIAN_CATEGORIES,
     substrate_alignment: VEDIC_TIME_SUBSTRATE,
     kamakhya_meridian_offset_h: KAMAKHYA_LMT_OFFSET_H,
   }

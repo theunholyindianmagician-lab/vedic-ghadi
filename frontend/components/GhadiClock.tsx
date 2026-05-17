@@ -7,6 +7,7 @@ import { LayerCard } from "./LayerCard"
 import { TimeMachine } from "./TimeMachine"
 import { FormulaePanel } from "./FormulaePanel"
 import { MeridianComparison } from "./MeridianComparison"
+import { MeridianGrid } from "./MeridianGrid"
 
 /**
  * 🔱 वैदिक घडी — जीवंत
@@ -162,8 +163,11 @@ export function GhadiClock() {
         </div>
       </div>
 
-      {/* दोनों meridian — Ujjayinī (Sūrya Siddhānta) ⟷ Kāmākhyā (KAAL) */}
+      {/* दोनों meridian primary — Ujjayinī (Sūrya Siddhānta) ⟷ Kāmākhyā (KAAL) */}
       <MeridianComparison bm={stamp.by_meridian} />
+
+      {/* सर्व-मेरिडियन — सब 12 cities, parallel table */}
+      <MeridianGrid stamp={stamp} />
 
       <FormulaePanel stamp={stamp} />
 
