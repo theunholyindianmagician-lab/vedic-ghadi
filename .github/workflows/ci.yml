@@ -101,7 +101,7 @@ jobs:
   # Runs only after all test jobs pass on main pushes
   # ─────────────────────────────────────────────────────────────────────────
   deploy:
-    name: 🚀 Deploy · Cloud Run (asia-south1)
+    name: 🚀 Deploy · Cloud Run (asia-southeast1)
     runs-on: ubuntu-latest
     needs: [python, frontend, parity]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
