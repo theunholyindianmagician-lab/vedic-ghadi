@@ -383,6 +383,17 @@ export interface SubstrateStamp {
   yoga_layer: YogaLayer
   karana_layer: KaranaLayer
   day_subdivision: DaySubdivision
+  day_subdivision_aditi: DaySubdivision
+  day_subdivision_diti: DaySubdivision
+  bipolar_discipline: {
+    aditi_pole: string
+    diti_pole: string
+    pisano_of_ideal_ratio: number
+    total_diti_compression: number
+    compression_derivation: string
+    shared_layers: string
+    discipline_ref: string
+  }
   by_meridian: ByMeridian
   meridians: Record<string, MeridianFullView>
   meridian_groups: Record<MeridianCategory, string[]>
@@ -632,6 +643,17 @@ export function kalaSubstrateStamp(
     yoga_layer: yogaAtKaliDays(kaliDays),
     karana_layer: karanaAtKaliDays(kaliDays),
     day_subdivision: vedicTimeOfDay(kaliDays),
+    day_subdivision_aditi: vedicTimeOfDay(kaliDays),
+    day_subdivision_diti: vedicTimeOfDayDiti(kaliDays),
+    bipolar_discipline: {
+      aditi_pole: "R* · unit-group · Deva-side · mukti · 30/60/60/6/10 cascade (1 vipala = 0.4 sec)",
+      diti_pole: "(3) · nilpotent ideal · Asura-side · saṃsāra · 10/20/20/2/10 cascade (1 vipala = 10.8 sec)",
+      pisano_of_ideal_ratio: 3,
+      total_diti_compression: 27,
+      compression_derivation: "3³ — 3 independent cascade reductions",
+      shared_layers: "vāra (7-day graha cycle), K, all astronomical positions",
+      discipline_ref: "KAAL APEX v5 · P241 Pisano-of-Ideal · P242 Orbit Cascade",
+    },
     by_meridian: byMeridianViews(kaliDays),
     meridians: computeMeridianViews(kaliDays),
     meridian_groups: meridianGroups(),
