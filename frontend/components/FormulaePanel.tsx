@@ -39,6 +39,7 @@ export function FormulaePanel({ stamp }: { stamp: SubstrateStamp }) {
         <div className="px-6 pb-8 space-y-8">
           <Constants />
           <SourceQuantity K={K} stamp={stamp} />
+          <ParallelMeridianFormula stamp={stamp} />
           <YearFormulae K={K} stamp={stamp} />
           <MonthTithiFormulae sunLon={sunLon} moonLon={moonLon} elong={elong} stamp={stamp} />
           <VaraFormula K={K} stamp={stamp} />
@@ -146,6 +147,34 @@ function SourceQuantity({ K, stamp }: { K: number; stamp: SubstrateStamp }) {
         result={`K = ${K.toLocaleString(undefined, { minimumFractionDigits: 6, maximumFractionDigits: 6 })}`}
         note="कामाख्या मेरिडियन-केन्द्रित कलि सावन दिन (एकमात्र source quantity)"
       />
+    </Section>
+  )
+}
+
+function ParallelMeridianFormula({ stamp }: { stamp: SubstrateStamp }) {
+  const bm = stamp.by_meridian
+  return (
+    <Section title="◈ मेरिडियन-समानांतर · PARALLEL MERIDIANS"
+             subtitle="दोनों दृष्टि · same instant, two K-values">
+      <Formula
+        label="उज्जयिनी K" deva="उज्जयिनी"
+        formula="K_ujjain = jd_ut + UJJAIN_LMT/24 − KALI_EPOCH_JD"
+        substitution={`jd_ut + ${bm.ujjain.lmt_offset_h.toFixed(4)}/24 − 588 465.5`}
+        result={`K_ujjain = ${bm.ujjain.kali_civil_days.toLocaleString(undefined, {minimumFractionDigits: 6, maximumFractionDigits: 6})}  →  वार ${bm.ujjain.vara.vara_name} · घटी ${bm.ujjain.day_subdivision.ghati_index}/60`}
+        note="Sūrya Siddhānta canonical meridian — हर astronomical position यहाँ से calibrated"
+      />
+      <Formula
+        label="कामाख्या K" deva="कामाख्या"
+        formula="K_kamakhya = K_ujjain + (KAMAKHYA_LON − UJJAIN_LON) / 15 / 24"
+        substitution={`K_ujjain + (91.7059 − 75.7789) / 15 / 24 = K_ujjain + ${bm.offset_kamakhya_minus_ujjain_days.toFixed(6)}`}
+        result={`K_kamakhya = ${bm.kamakhya.kali_civil_days.toLocaleString(undefined, {minimumFractionDigits: 6, maximumFractionDigits: 6})}  →  वार ${bm.kamakhya.vara.vara_name} · घटी ${bm.kamakhya.day_subdivision.ghati_index}/60`}
+        note={`Kāmākhyā ${bm.offset_kamakhya_minus_ujjain_min} min ahead (further east) · KAAL symbolic origin`}
+      />
+      <div className="mt-2 text-xs text-gold-600/80 italic px-2">
+        Year / saṃvatsara / māsa / tithi / nakṣatra / yoga / karaṇa are identical
+        across both — Sun and Moon positions don&apos;t depend on observer&apos;s meridian.
+        Only वार और दिनार्ध meridian-dependent।
+      </div>
     </Section>
   )
 }

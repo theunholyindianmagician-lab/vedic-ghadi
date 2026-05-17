@@ -6,6 +6,7 @@ import { TimeYantra } from "./TimeYantra"
 import { LayerCard } from "./LayerCard"
 import { TimeMachine } from "./TimeMachine"
 import { FormulaePanel } from "./FormulaePanel"
+import { MeridianComparison } from "./MeridianComparison"
 
 /**
  * 🔱 वैदिक घडी — जीवंत
@@ -31,8 +32,6 @@ export function GhadiClock() {
   const y = stamp.year_layer
   const m = stamp.month_layer
   const t = stamp.tithi_layer
-  const v = stamp.vara_layer
-  const d = stamp.day_subdivision
   const ci = stamp.input_civil
 
   const civilDisplay = `${ci.gregorian_year.toString().padStart(4,'0')}-${ci.month.toString().padStart(2,'0')}-${ci.day.toString().padStart(2,'0')}  ${ci.hour.toString().padStart(2,'0')}:${ci.minute.toString().padStart(2,'0')}:${Math.floor(ci.second).toString().padStart(2,'0')}`
@@ -118,14 +117,6 @@ export function GhadiClock() {
           />
 
           <LayerCard
-            badge="वार · VĀRA"
-            badgeDeva={v.vara_devanagari}
-            title={v.vara_name}
-            subtitle={`ग्रह स्वामी: ${v.vara_lord_graha}`}
-            formula="W = (⌊K⌋ + 5) mod 7  · कलि दिन-० = शुक्रवार"
-          />
-
-          <LayerCard
             badge="नक्षत्र · NAKṢATRA"
             badgeDeva={stamp.nakshatra_layer.nakshatra_devanagari}
             title={
@@ -168,32 +159,11 @@ export function GhadiClock() {
             formula="C = ⌊((L☾ − L☉) mod 360) / 6⌋ + 1  · ७ चर × ८ चक्र + ४ स्थिर"
           />
 
-          <LayerCard
-            badge="दिनार्ध · DAY SUBDIVISION"
-            badgeDeva="दिनार्ध"
-            accent
-            title={
-              <div className="flex items-baseline gap-2 tabular flex-wrap">
-                <Big v={d.muhurta_index} unit="मुहूर्त" max={30} />
-                <span className="text-gold-600 text-sm">·</span>
-                <Big v={d.ghati_index} unit="घटी" max={60} />
-                <span className="text-gold-600 text-sm">·</span>
-                <Big v={d.vighati_index} unit="विघटी" max={60} />
-                <span className="text-gold-600 text-sm">·</span>
-                <Big v={d.prana_index} unit="प्राण" max={6} />
-              </div>
-            }
-            subtitle={`${d.hours_from_kamakhya_midnight.toFixed(4)} h · कामाख्या आधी रात से`}
-            rows={[
-              { label: "विपल (०.४ sec)",
-                value: `${d.vipala_fractional.toFixed(4)} / 10` },
-              { label: "दिनांश (fraction)",
-                value: d.fraction_of_day.toFixed(6) },
-            ]}
-            formula="f = K − ⌊K⌋ · μ=⌊f·30⌋ · g=⌊f·60⌋ · v=⌊(f·60 mod 1)·60⌋ · p=⌊v_frac·6⌋"
-          />
         </div>
       </div>
+
+      {/* दोनों meridian — Ujjayinī (Sūrya Siddhānta) ⟷ Kāmākhyā (KAAL) */}
+      <MeridianComparison bm={stamp.by_meridian} />
 
       <FormulaePanel stamp={stamp} />
 
@@ -233,15 +203,7 @@ function Header({ isLive, civilDisplay, tz }: { isLive: boolean; civilDisplay: s
   )
 }
 
-function Big({ v, unit, max }: { v: number; unit: string; max: number }) {
-  return (
-    <span className="inline-flex items-baseline gap-1">
-      <span className="text-3xl text-gold-100">{v}</span>
-      <span className="text-sm text-gold-500">/{max}</span>
-      <span className="text-xs text-gold-600 inscription ml-1">{unit}</span>
-    </span>
-  )
-}
+// Big helper removed — moved to MeridianComparison.tsx
 
 function SubstrateFooter() {
   return (

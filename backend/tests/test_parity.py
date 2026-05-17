@@ -98,3 +98,11 @@ def test_python_ts_parity(args):
     # Kali day count — within a microsecond
     assert abs(py["kali_civil_days_at_kamakhya"]
                - ts["kali_civil_days_at_kamakhya"]) < 1e-5
+
+    # Parallel meridian block
+    for m in ("ujjain", "kamakhya"):
+        assert py["by_meridian"][m]["vara"]["vara_name"] == ts["by_meridian"][m]["vara"]["vara_name"]
+        assert py["by_meridian"][m]["day_subdivision"]["ghati_index"] == ts["by_meridian"][m]["day_subdivision"]["ghati_index"]
+        assert py["by_meridian"][m]["day_subdivision"]["muhurta_index"] == ts["by_meridian"][m]["day_subdivision"]["muhurta_index"]
+        assert abs(py["by_meridian"][m]["kali_civil_days"]
+                   - ts["by_meridian"][m]["kali_civil_days"]) < 1e-5

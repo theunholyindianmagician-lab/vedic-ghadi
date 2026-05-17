@@ -380,7 +380,30 @@ else:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-section("12 · Edge cases & boundaries")
+section("12a · Parallel meridian views (Ujjayinī ⟷ Kāmākhyā)")
+# ═══════════════════════════════════════════════════════════════════════════
+bm = stamp["by_meridian"]
+check("by_meridian.ujjain present",  "ujjain" in bm)
+check("by_meridian.kamakhya present", "kamakhya" in bm)
+check("Offset = 0.04425 days (1h 4m)",
+      abs(bm["offset_kamakhya_minus_ujjain_days"] - 0.044242) < 1e-5)
+check("Offset in minutes ≈ 63.71",
+      abs(bm["offset_kamakhya_minus_ujjain_min"] - 63.71) < 0.05)
+check("K_kamakhya − K_ujjain = stated offset (identity)",
+      abs((bm["kamakhya"]["kali_civil_days"] - bm["ujjain"]["kali_civil_days"])
+          - bm["offset_kamakhya_minus_ujjain_days"]) < 1e-5)
+check("Kāmākhyā ghaṭi runs 2-3 ahead of Ujjain (~64 min ≈ 2.66 ghaṭi)",
+      (bm["kamakhya"]["day_subdivision"]["ghati_index"]
+       - bm["ujjain"]["day_subdivision"]["ghati_index"]) in (2, 3))
+check("Ujjain longitude = 75.7789°",
+      abs(bm["ujjain"]["lon_deg"] - 75.778889) < 1e-5)
+check("Kāmākhyā longitude = 91.7059°",
+      abs(bm["kamakhya"]["lon_deg"] - 91.705900) < 1e-5)
+check("Astronomical layers NOT duplicated (meridian-independent)",
+      "month_kamakhya" not in stamp and "tithi_kamakhya" not in stamp)
+
+
+section("12b · Edge cases & boundaries")
 # ═══════════════════════════════════════════════════════════════════════════
 # Day boundary: at IST midnight, did we cross to next civil day correctly?
 late = ghadi_at(2026, 5, 17, 23, 59, 59.999, 5.5)

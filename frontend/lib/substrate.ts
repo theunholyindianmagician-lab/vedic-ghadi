@@ -34,6 +34,12 @@ export const MAHAYUGA_CIVIL_DAYS = 1_577_917_500
 export const MAHAYUGA_SIDEREAL_DAYS = 1_582_237_800
 export const KALI_DAYS_PER_YEAR = MAHAYUGA_CIVIL_DAYS / MAHAYUGA_YEARS
 
+// Offset to convert Ujjain-anchored K → Kāmākhyā-anchored K.
+// Both are east of Greenwich; Kāmākhyā is further east, so its civil-day
+// counter runs ~1h 4m ahead of Ujjain's.
+export const KAMAKHYA_MINUS_UJJAIN_DAYS =
+  (KAMAKHYA_LON_DEG - UJJAIN_LON_DEG) / 15.0 / 24.0   // ≈ 0.04425
+
 export function jdToKaliCivilDays(jdUtGreenwich: number): number {
   const jdKamakhya = jdUtGreenwich + KAMAKHYA_LMT_OFFSET_H / 24.0
   return jdKamakhya - KALI_YUGA_EPOCH_JD - UJJAIN_TO_KAMAKHYA_TIME_DIFF_H / 24.0
@@ -304,6 +310,25 @@ export interface YearLayer {
 import type { NakshatraLayer, YogaLayer, KaranaLayer } from "./panchanga.ts"
 import { nakshatraAtKaliDays, yogaAtKaliDays, karanaAtKaliDays } from "./panchanga.ts"
 
+export interface MeridianView {
+  label_en: string
+  label_hi: string
+  label_sub: string
+  lon_deg: number
+  lmt_offset_h: number
+  kali_civil_days: number
+  vara: VaraLayer
+  day_subdivision: DaySubdivision
+}
+
+export interface ByMeridian {
+  ujjain: MeridianView
+  kamakhya: MeridianView
+  offset_kamakhya_minus_ujjain_days: number
+  offset_kamakhya_minus_ujjain_h: number
+  offset_kamakhya_minus_ujjain_min: number
+}
+
 export interface SubstrateStamp {
   input_civil: {
     gregorian_year: number; month: number; day: number
@@ -318,8 +343,46 @@ export interface SubstrateStamp {
   yoga_layer: YogaLayer
   karana_layer: KaranaLayer
   day_subdivision: DaySubdivision
+  by_meridian: ByMeridian
   substrate_alignment: typeof VEDIC_TIME_SUBSTRATE
   kamakhya_meridian_offset_h: number
+}
+
+function meridianView(
+  labelEn: string, labelHi: string, labelSub: string,
+  lonDeg: number, kaliDays: number,
+): MeridianView {
+  return {
+    label_en: labelEn,
+    label_hi: labelHi,
+    label_sub: labelSub,
+    lon_deg: lonDeg,
+    lmt_offset_h: Math.round((lonDeg / 15.0) * 1e6) / 1e6,
+    kali_civil_days: Math.round(kaliDays * 1e6) / 1e6,
+    vara: vedicVaraAtKaliDays(kaliDays),
+    day_subdivision: vedicTimeOfDay(kaliDays),
+  }
+}
+
+export function byMeridianViews(kaliDaysUjjain: number): ByMeridian {
+  const kaliDaysKamakhya = kaliDaysUjjain + KAMAKHYA_MINUS_UJJAIN_DAYS
+  return {
+    ujjain: meridianView(
+      "Ujjayinī (Avantī)",
+      "उज्जयिनी",
+      "Sūrya Siddhānta canonical meridian · 75.78° E",
+      UJJAIN_LON_DEG, kaliDaysUjjain,
+    ),
+    kamakhya: meridianView(
+      "Kāmākhyā Devī (Nīlācala)",
+      "कामाख्या",
+      "KAAL symbolic origin · Sovereign East · 91.71° E",
+      KAMAKHYA_LON_DEG, kaliDaysKamakhya,
+    ),
+    offset_kamakhya_minus_ujjain_days: Math.round(KAMAKHYA_MINUS_UJJAIN_DAYS * 1e6) / 1e6,
+    offset_kamakhya_minus_ujjain_h: Math.round(KAMAKHYA_MINUS_UJJAIN_DAYS * 24 * 1e4) / 1e4,
+    offset_kamakhya_minus_ujjain_min: Math.round(KAMAKHYA_MINUS_UJJAIN_DAYS * 1440 * 1e2) / 1e2,
+  }
 }
 
 export function kalaSubstrateStamp(
@@ -354,6 +417,7 @@ export function kalaSubstrateStamp(
     yoga_layer: yogaAtKaliDays(kaliDays),
     karana_layer: karanaAtKaliDays(kaliDays),
     day_subdivision: vedicTimeOfDay(kaliDays),
+    by_meridian: byMeridianViews(kaliDays),
     substrate_alignment: VEDIC_TIME_SUBSTRATE,
     kamakhya_meridian_offset_h: KAMAKHYA_LMT_OFFSET_H,
   }

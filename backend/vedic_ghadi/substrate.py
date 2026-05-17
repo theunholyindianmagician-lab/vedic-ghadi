@@ -50,6 +50,14 @@ MAHAYUGA_CIVIL_DAYS: int = 1_577_917_500     # Sūrya Siddhānta 1.34
 MAHAYUGA_SIDEREAL_DAYS: int = 1_582_237_800  # Sūrya Siddhānta 1.34
 KALI_DAYS_PER_YEAR: float = MAHAYUGA_CIVIL_DAYS / MAHAYUGA_YEARS  # 365.2587563
 
+# Offset to convert Ujjain-anchored K → Kāmākhyā-anchored K.
+# Both Ujjain & Kāmākhyā are east of Greenwich; Kāmākhyā is further east,
+# so its civil-day counter runs ahead of Ujjain's by this amount per day.
+# (KAMAKHYA_LON − UJJAIN_LON) / 15° per hour / 24 h per day ≈ 0.0442 days ≈ 1h 4m
+KAMAKHYA_MINUS_UJJAIN_DAYS: float = (
+    (KAMAKHYA_LON_DEG - UJJAIN_LON_DEG) / 15.0 / 24.0
+)
+
 
 def jd_to_kali_civil_days(jd_ut_greenwich: float) -> float:
     """Greenwich JD-UT → elapsed civil days since Kali-yuga epoch.
@@ -301,6 +309,61 @@ def vedic_time_of_day(kali_civil_days: float) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# ◈ PARALLEL MERIDIAN VIEWS — Ujjayinī (Sūrya Siddhānta canonical) ⟷
+#                              Kāmākhyā (KAAL symbolic origin)
+# ═══════════════════════════════════════════════════════════════════════════
+# The existing `kali_civil_days` value is Ujjain-LMT-anchored (the math
+# simplifies to K = jd_ut + UJJAIN_LMT/24 − epoch). To get a TRUE
+# Kāmākhyā-LMT-anchored value, we add the LMT offset between the two:
+# K_kamakhya = K_ujjain + 0.0442 days (≈ 1h 4m)
+#
+# Astronomical layers (year/saṃvatsara/māsa/tithi/nakṣatra/yoga/karaṇa) use
+# the Ujjain K because the Sūrya Siddhānta places all grahas at sidereal 0°
+# at Ujjain LMT midnight on the Kali start day — that's the canonical
+# physical zero-point.
+#
+# Meridian-dependent layers (vāra, muhūrta, ghaṭi, vighaṭi, prāṇa, vipala)
+# are computed for BOTH meridians in parallel; they can differ near the
+# day-boundary (~1h 4m window).
+
+def _meridian_view(label_en, label_hi, label_sub, lon_deg, kali_days):
+    return {
+        "label_en": label_en,
+        "label_hi": label_hi,
+        "label_sub": label_sub,
+        "lon_deg": lon_deg,
+        "lmt_offset_h": round(lon_deg / 15.0, 6),
+        "kali_civil_days": round(kali_days, 6),
+        "vara": vedic_vara_at_kali_days(kali_days),
+        "day_subdivision": vedic_time_of_day(kali_days),
+    }
+
+
+def by_meridian_views(kali_days_ujjain: float) -> dict:
+    """Compute parallel Ujjain + Kāmākhyā views from the Ujjain-anchored K."""
+    kali_days_kamakhya = kali_days_ujjain + KAMAKHYA_MINUS_UJJAIN_DAYS
+    return {
+        "ujjain": _meridian_view(
+            "Ujjayinī (Avantī)",
+            "उज्जयिनी",
+            "Sūrya Siddhānta canonical meridian · 75.78° E",
+            UJJAIN_LON_DEG,
+            kali_days_ujjain,
+        ),
+        "kamakhya": _meridian_view(
+            "Kāmākhyā Devī (Nīlācala)",
+            "कामाख्या",
+            "KAAL symbolic origin · Sovereign East · 91.71° E",
+            KAMAKHYA_LON_DEG,
+            kali_days_kamakhya,
+        ),
+        "offset_kamakhya_minus_ujjain_days": round(KAMAKHYA_MINUS_UJJAIN_DAYS, 6),
+        "offset_kamakhya_minus_ujjain_h": round(KAMAKHYA_MINUS_UJJAIN_DAYS * 24, 4),
+        "offset_kamakhya_minus_ujjain_min": round(KAMAKHYA_MINUS_UJJAIN_DAYS * 1440, 2),
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # ◈ PAÑCĀṄGA helpers — imported lazily so panchanga.py can import substrate.py
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -370,6 +433,10 @@ def kala_substrate_stamp(
         "yoga_layer":      _panchanga_yoga(kali_days),
         "karana_layer":    _panchanga_karana(kali_days),
         "day_subdivision": vedic_time_of_day(kali_days),
+        # NEW v1.2.0 — parallel meridian views (Ujjain ⟷ Kāmākhyā).
+        # Legacy top-level vara_layer + day_subdivision are kept (= Ujjain
+        # values) for backward compat; new code should prefer by_meridian.
+        "by_meridian": by_meridian_views(kali_days),
         "substrate_alignment": VEDIC_TIME_SUBSTRATE,
         "kamakhya_meridian_offset_h": KAMAKHYA_LMT_OFFSET_H,
         "discipline": {
@@ -390,7 +457,8 @@ __all__ = [
     "KAMAKHYA_LMT_OFFSET_H",
     "KALI_YUGA_EPOCH_JD", "UJJAIN_LON_DEG",
     "MAHAYUGA_YEARS", "MAHAYUGA_CIVIL_DAYS", "MAHAYUGA_SIDEREAL_DAYS",
-    "KALI_DAYS_PER_YEAR",
+    "KALI_DAYS_PER_YEAR", "KAMAKHYA_MINUS_UJJAIN_DAYS",
+    "by_meridian_views",
     "MASA_NAMES", "MASA_DEV", "VARA_NAMES", "VARA_DEV", "VARA_LORD",
     "SAMVATSARA_NAMES", "PAKSHA_NAMES", "PAKSHA_DEV", "TITHI_NAMES",
     "VEDIC_TIME_SUBSTRATE",

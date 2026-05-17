@@ -117,6 +117,27 @@ def render_ghadi_text(stamp: dict, width: int = 78) -> str:
     out.append(f"     Vāra-lord graha              : {v['vara_lord_graha']}")
     out.append("")
 
+    bm = stamp.get("by_meridian")
+    if bm:
+        out.append(sub)
+        out.append("  ◈ MERIDIAN-PARALLEL  ·  UJJAYINĪ ⟷ KĀMĀKHYĀ")
+        out.append(sub)
+        u = bm["ujjain"]
+        k = bm["kamakhya"]
+        out.append(
+            f"     Ujjayinī   K = {u['kali_civil_days']:>15,.6f}   "
+            f"वार {u['vara']['vara_name']:>14}   घटी {u['day_subdivision']['ghati_index']:>2}/60"
+        )
+        out.append(
+            f"     Kāmākhyā   K = {k['kali_civil_days']:>15,.6f}   "
+            f"वार {k['vara']['vara_name']:>14}   घटी {k['day_subdivision']['ghati_index']:>2}/60"
+        )
+        out.append(
+            f"     ΔK = +{bm['offset_kamakhya_minus_ujjain_days']:.6f} days "
+            f"(= {bm['offset_kamakhya_minus_ujjain_min']:.2f} min · Kāmākhyā 15.93° further east)"
+        )
+        out.append("")
+
     n = stamp.get("nakshatra_layer")
     yg = stamp.get("yoga_layer")
     kr = stamp.get("karana_layer")
