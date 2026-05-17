@@ -432,6 +432,14 @@ export interface SubstrateStamp {
   day_subdivision: DaySubdivision
   day_subdivision_aditi: DaySubdivision
   day_subdivision_diti: DaySubdivision
+  trimurti_at_ujjain: {
+    aditi: Record<TrimurtiId, TrimurtiView>
+    diti:  Record<TrimurtiId, TrimurtiView>
+  }
+  trimurti_operators: Array<{
+    id: string; en: string; hi: string; sub: string
+    offset_days: number; icon: string; tag: string
+  }>
   bipolar_discipline: {
     aditi_pole: string
     diti_pole: string
@@ -700,6 +708,19 @@ export function kalaSubstrateStamp(
     day_subdivision: vedicTimeOfDay(kaliDays),
     day_subdivision_aditi: vedicTimeOfDay(kaliDays),
     day_subdivision_diti: vedicTimeOfDayDiti(kaliDays),
+    trimurti_at_ujjain: {
+      aditi: computeTrimurtiViews(kaliDays, vedicTimeOfDay),
+      diti:  computeTrimurtiViews(kaliDays, vedicTimeOfDayDiti),
+    },
+    trimurti_operators: TRIMURTI_OPERATORS.map(op => ({
+      id: op.id,
+      en: op.en,
+      hi: op.hi,
+      sub: op.sub,
+      offset_days: op.offset_days,
+      icon: op.icon,
+      tag: op.tag,
+    })),
     bipolar_discipline: {
       aditi_pole: "R* · unit-group · Deva-side · mukti · 30/60/60/6/10 cascade (1 vipala = 0.4 sec)",
       diti_pole: "(3) · nilpotent ideal · Asura-side · saṃsāra · 10/20/20/2/10 cascade (1 vipala = 10.8 sec)",
