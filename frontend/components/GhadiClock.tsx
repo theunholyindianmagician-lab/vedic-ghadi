@@ -63,7 +63,7 @@ export function GhadiClock() {
           <h1 className="mt-4 font-display text-3xl sm:text-4xl text-gold-200 tracking-[0.18em]">
             वर्तमान क्षण
           </h1>
-          <p className="mt-3 text-gold-600 italic">substrate loading…</p>
+          <p className="mt-3 text-gold-600 italic">substrate loading…<br/><span className="text-[10px]">v1.9.x · auto-deploy verified</span></p>
           <div className="mt-8 inline-block w-2 h-2 rounded-full bg-gold-400 ember-dot" />
         </div>
       </div>
