@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vedic-ghadi"
+version = "1.0.0"
+description = "Substrate-derived Vedic clock — Kāmākhyā-anchored, Sūrya-Siddhānta-canonical, zero foreign theorem."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Pardeep Sehrawat", email = "theunholyindianmagician@gmail.com" },
+]
+keywords = ["vedic", "jyotish", "panchang", "tithi", "ghadi", "kaal", "sanskrit"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Astronomy",
+]
+dependencies = []
+
+[project.optional-dependencies]
+server = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.27",
+]
+
+[project.urls]
+Homepage = "https://github.com/theunholyindianmagician-lab/vedic-ghadi"
+Issues = "https://github.com/theunholyindianmagician-lab/vedic-ghadi/issues"
+
+[project.scripts]
+vedic-ghadi = "vedic_ghadi.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["vedic_ghadi*"]
+exclude = ["tests*"]

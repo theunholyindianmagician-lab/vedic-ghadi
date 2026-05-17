@@ -1,0 +1,29 @@
+# 🔱 vedic-ghadi · end-to-end
+# Usage: docker compose up
+# Backend  → http://localhost:8765 (API + /docs)
+# Frontend → http://localhost:3030 (live ghaḍī)
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8765:8765"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8765/healthz')"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3030:3030"
+    environment:
+      NEXT_PUBLIC_API_BASE: http://api:8765
+    depends_on:
+      - api
+    restart: unless-stopped

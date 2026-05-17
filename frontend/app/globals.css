@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-deep: #050300;
+  --bg-base: #0a0703;
+  --bg-raise: #100a05;
+  --gold: #d4a44c;
+  --gold-soft: #e9b863;
+  --gold-bright: #f6cf78;
+  --gold-rim: #6b4d1c;
+  --amber-ember: #a04a0a;
+}
+
+html, body {
+  background:
+    radial-gradient(ellipse at top, #1a0d04 0%, transparent 60%),
+    radial-gradient(ellipse at bottom, #0d0602 0%, transparent 60%),
+    #050300;
+  background-attachment: fixed;
+  color: var(--gold-soft);
+  min-height: 100vh;
+}
+
+body {
+  font-family: var(--font-cormorant), Georgia, serif;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-cinzel), serif;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: var(--gold-bright);
+}
+
+::selection {
+  background: rgba(212, 164, 76, 0.3);
+  color: #fef4d8;
+}
+
+/* Yantra-style faint star/wave background */
+.bg-yantra {
+  background-image:
+    radial-gradient(circle at 50% 50%, rgba(212, 164, 76, 0.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Gold filigree divider */
+.divider-gold {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-rim) 20%, var(--gold) 50%, var(--gold-rim) 80%, transparent);
+  border: 0;
+  margin: 1.5rem 0;
+}
+
+/* Glow ring around the central yantra */
+.ring-glow {
+  filter: drop-shadow(0 0 12px rgba(212, 164, 76, 0.35));
+}
+
+/* Subtle pulse for the "live" indicator */
+@keyframes ember-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50%      { opacity: 1; transform: scale(1.15); }
+}
+.ember-dot {
+  animation: ember-pulse 2.4s ease-in-out infinite;
+}
+
+/* Concentric ring rotation tied to prāṇa */
+@keyframes prana-rotate {
+  from { transform: rotate(0); }
+  to   { transform: rotate(360deg); }
+}
+.spin-prana {
+  animation: prana-rotate 4s linear infinite;
+  transform-origin: center;
+}
+
+/* Tabular number font for digit-strict columns */
+.tabular {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Vedic-mantra inscription style */
+.inscription {
+  font-family: "Noto Serif Devanagari", serif;
+  letter-spacing: 0.05em;
+  color: var(--gold);
+}

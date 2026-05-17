@@ -1,0 +1,13 @@
+# 🔱 vedic-ghadi backend — FastAPI service
+FROM python:3.12-slim
+
+WORKDIR /app
+COPY backend/ /app/
+
+RUN pip install --no-cache-dir -e ".[server]"
+
+EXPOSE 8765
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8765/healthz').read()"
+
+CMD ["uvicorn", "vedic_ghadi.api:app", "--host", "0.0.0.0", "--port", "8765"]
