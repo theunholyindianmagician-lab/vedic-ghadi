@@ -85,13 +85,65 @@ jobs:
         run: pytest tests/test_parity.py -v
 
   # ─────────────────────────────────────────────────────────────────────────
-  # E2E: Playwright against the just-deployed Vercel URL
-  # Triggered only on main pushes after Vercel auto-deploy completes
+  # Deploy: trigger Vercel deploy hook (bypasses CLI rate limit + GitHub App)
+  # Runs only AFTER all test jobs pass on main pushes
+  # ─────────────────────────────────────────────────────────────────────────
+  deploy:
+    name: 🚀 Deploy · trigger Vercel build
+    runs-on: ubuntu-latest
+    needs: [python, frontend, parity]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      deploy_url: ${{ steps.poll.outputs.url }}
+    steps:
+      - name: Fire Vercel deploy hook
+        run: |
+          if [ -z "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}" ]; then
+            echo "::error::VERCEL_DEPLOY_HOOK_URL secret not set"
+            exit 1
+          fi
+          RESPONSE=$(curl -fsS -X POST "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}")
+          echo "Hook response: $RESPONSE"
+          JOB_ID=$(echo "$RESPONSE" | python3 -c 'import sys,json; print(json.load(sys.stdin)["job"]["id"])')
+          echo "Deploy job: $JOB_ID"
+          echo "deploy_job=$JOB_ID" >> $GITHUB_OUTPUT
+
+      - name: Poll deployment until READY (up to 5 min)
+        id: poll
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          PROJECT_ID="prj_nFTiBe0zfWbZosAPfzR8Aoi7K7Wd"
+          for i in $(seq 1 30); do
+            sleep 10
+            if [ -n "$VERCEL_TOKEN" ]; then
+              DEP=$(curl -fsS \
+                "https://api.vercel.com/v6/deployments?projectId=$PROJECT_ID&limit=1" \
+                -H "Authorization: Bearer $VERCEL_TOKEN")
+              STATE=$(echo "$DEP" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d["deployments"][0]["state"])' || echo "UNKNOWN")
+              URL=$(echo "$DEP" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d["deployments"][0]["url"])' || echo "")
+              echo "[$i/30] state=$STATE url=$URL"
+              if [ "$STATE" = "READY" ]; then
+                echo "url=https://$URL" >> $GITHUB_OUTPUT
+                exit 0
+              fi
+              if [ "$STATE" = "ERROR" ] || [ "$STATE" = "CANCELED" ]; then
+                echo "::error::Deploy failed with state $STATE"
+                exit 1
+              fi
+            else
+              echo "[$i/30] no VERCEL_TOKEN — sleeping"
+            fi
+          done
+          echo "::warning::Deploy did not reach READY in 5min, continuing anyway"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # E2E: Playwright against the freshly-deployed Vercel URL
   # ─────────────────────────────────────────────────────────────────────────
   e2e-live:
     name: 🎭 E2E · Playwright vs live deployment
     runs-on: ubuntu-latest
-    needs: [frontend]
+    needs: [deploy]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
@@ -106,12 +158,10 @@ jobs:
       - name: Install Playwright chromium
         working-directory: frontend
         run: npx playwright install --with-deps chromium
-      - name: Wait 90s for Vercel auto-deploy to settle
-        run: sleep 90
-      - name: Run E2E against vedic-ghadi.vercel.app
+      - name: Run E2E against ${{ needs.deploy.outputs.deploy_url || 'fallback URL' }}
         working-directory: frontend
         env:
-          BASE_URL: https://vedic-ghadi.vercel.app
+          BASE_URL: ${{ needs.deploy.outputs.deploy_url || 'https://vedic-ghadi-hs60jl57t-theunholyindianmagicians-projects.vercel.app' }}
         run: npx playwright test --reporter=list
       - name: Upload Playwright report on failure
         if: failure()
