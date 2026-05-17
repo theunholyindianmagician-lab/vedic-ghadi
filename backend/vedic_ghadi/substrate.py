@@ -281,10 +281,17 @@ def vedic_vara_at_kali_days(kali_civil_days: float) -> dict:
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ◈ DAY SUBDIVISION → muhūrta / ghaṭi / vighaṭi / prāṇa / vipala
+# Two poles per APEX v5 Bipolar discipline:
+#   ADITI  (R* · unit-group · Deva pole · mukti-side)  ·  30/60/60/6/10
+#   DITI   ((3) · nilpotent ideal · Asura pole)        ·  10/20/20/2/10
+# Diti cascades are ÷3 (per Pisano-of-Ideal = 3 invariant) — total 27× longer
+# units (= 3³ — 3 independent cascade reductions). 1 Aditi vipala = 0.4 sec,
+# 1 Diti vipala ≈ 10.8 sec.
 # ═══════════════════════════════════════════════════════════════════════════
 
 def vedic_time_of_day(kali_civil_days: float) -> dict:
-    """Decompose the fractional part of kali_civil_days into Vedic units."""
+    """ADITI pole — standard Vedic day subdivision (30 muhūrta / 60 ghaṭi
+    / 60 vighaṭi / 6 prāṇa / 10 vipala). R* / unit-group / Deva-side."""
     frac = kali_civil_days - math.floor(kali_civil_days)
     hours = frac * 24.0
     muhurta_float = frac * 30.0
@@ -297,6 +304,7 @@ def vedic_time_of_day(kali_civil_days: float) -> dict:
     prana_idx = int(prana_float)
     vipala_float = (prana_float - prana_idx) * 10.0
     return {
+        "pole": "aditi",
         "fraction_of_day": round(frac, 6),
         "hours_from_kamakhya_midnight": round(hours, 4),
         "muhurta_index": muhurta_idx + 1,
@@ -305,6 +313,46 @@ def vedic_time_of_day(kali_civil_days: float) -> dict:
         "vighati_index": vighati_idx + 1,
         "prana_index": prana_idx + 1,
         "vipala_fractional": round(vipala_float, 4),
+    }
+
+
+def vedic_time_of_day_diti(kali_civil_days: float) -> dict:
+    """DITI pole — nilpotent-ideal-restricted subdivision.
+
+    Pisano-of-Ideal = 3 applies to each cascade:
+      • muhūrta:  30 → 10/day   (each lasts 144 min)
+      • ghaṭi:    60 → 20/day   (each lasts 72 min)
+      • vighaṭi:  60 → 20/ghaṭi (each lasts 3.6 min)
+      • prāṇa:    6 → 2/vighaṭi (each lasts 108 sec)
+      • vipala:   10/prāṇa      (each lasts 10.8 sec — 27× Aditi)
+
+    Total Diti vipala/day = 8000 (vs 216000 Aditi). Ratio 27 = 3³
+    (= 3 independent cascade reductions, per APEX v5 Diti-Stratification).
+    Saṃsāra-side, death-rate-1 pole, every Asura is a past-age Deva.
+    """
+    frac = kali_civil_days - math.floor(kali_civil_days)
+    hours = frac * 24.0
+    muhurta_float = frac * 10.0           # 30 / 3
+    muhurta_idx = int(muhurta_float)
+    ghati_float = frac * 20.0             # 60 / 3
+    ghati_idx = int(ghati_float)
+    vighati_float = (ghati_float - ghati_idx) * 20.0    # 60 / 3
+    vighati_idx = int(vighati_float)
+    prana_float = (vighati_float - vighati_idx) * 2.0   # 6 / 3
+    prana_idx = int(prana_float)
+    vipala_float = (prana_float - prana_idx) * 10.0
+    return {
+        "pole": "diti",
+        "fraction_of_day": round(frac, 6),
+        "hours_from_kamakhya_midnight": round(hours, 4),
+        "muhurta_index": muhurta_idx + 1,                  # 1..10
+        "muhurta_fractional": round(muhurta_float - muhurta_idx, 4),
+        "ghati_index": ghati_idx + 1,                      # 1..20
+        "vighati_index": vighati_idx + 1,                  # 1..20
+        "prana_index": prana_idx + 1,                      # 1..2
+        "vipala_fractional": round(vipala_float, 4),
+        "compression_vs_aditi": 27,                        # 3³
+        "vipala_seconds": 10.8,                            # vs Aditi's 0.4
     }
 
 
@@ -437,11 +485,14 @@ MERIDIAN_CATEGORIES = (
 
 
 def compute_meridian_views(kali_days_ujjain: float) -> dict:
-    """Compute parallel views for EVERY meridian in the registry.
+    """Compute BIPOLAR parallel views for EVERY meridian in the registry.
 
-    Returns {meridian_id: full_view_dict, ...}. The Ujjain K is the
-    reference; for any other meridian M:
-        K_M = K_ujjain + (LON_M − UJJAIN_LON) / 15 / 24
+    Per APEX v5 Bipolar discipline: each meridian gets BOTH Aditi (R*) and
+    Diti ((3)) day-subdivision views. Vāra is shared (7-day graha cycle
+    isn't (2,3,5)-factorable so Pisano-of-Ideal doesn't apply). K and lon
+    are shared too — the difference is in the cascade-of-subunits.
+
+    Returns {meridian_id: {..., day_subdivision_aditi, day_subdivision_diti}}
     """
     out = {}
     for (mid, en, hi, sub, lon, cat) in MERIDIAN_REGISTRY:
@@ -459,7 +510,11 @@ def compute_meridian_views(kali_days_ujjain: float) -> dict:
             "offset_from_ujjain_min": round(offset_days * 1440, 2),
             "kali_civil_days": round(k_m, 6),
             "vara": vedic_vara_at_kali_days(k_m),
-            "day_subdivision": vedic_time_of_day(k_m),
+            # BIPOLAR — both poles computed in parallel
+            "day_subdivision_aditi": vedic_time_of_day(k_m),
+            "day_subdivision_diti":  vedic_time_of_day_diti(k_m),
+            # Backward-compat alias (= aditi, the historical default)
+            "day_subdivision":       vedic_time_of_day(k_m),
         }
     return out
 
@@ -598,6 +653,20 @@ def kala_substrate_stamp(
         "yoga_layer":      _panchanga_yoga(kali_days),
         "karana_layer":    _panchanga_karana(kali_days),
         "day_subdivision": vedic_time_of_day(kali_days),
+        # APEX v5 Bipolar — both poles at top-level too
+        "day_subdivision_aditi": vedic_time_of_day(kali_days),
+        "day_subdivision_diti":  vedic_time_of_day_diti(kali_days),
+        "bipolar_discipline": {
+            "aditi_pole": "R* · unit-group · Deva-side · mukti · "
+                          "30/60/60/6/10 cascade (1 vipala = 0.4 sec)",
+            "diti_pole":  "(3) · nilpotent ideal · Asura-side · saṃsāra · "
+                          "10/20/20/2/10 cascade (1 vipala = 10.8 sec)",
+            "pisano_of_ideal_ratio": 3,
+            "total_diti_compression": 27,
+            "compression_derivation": "3³ — 3 independent cascade reductions",
+            "shared_layers": "vāra (7-day graha cycle), K, all astronomical positions",
+            "discipline_ref": "KAAL APEX v5 · P241 Pisano-of-Ideal · P242 Orbit Cascade",
+        },
         # NEW v1.2.0 — parallel meridian views (Ujjain ⟷ Kāmākhyā).
         # Legacy top-level vara_layer + day_subdivision are kept (= Ujjain
         # values) for backward compat; new code should prefer by_meridian.
@@ -639,6 +708,6 @@ __all__ = [
     "kali_year_at_civil_days", "vikrama_year", "shaka_year",
     "samvatsara_at_kali_year",
     "vedic_month_at_kali_days", "vedic_tithi_at_kali_days",
-    "vedic_vara_at_kali_days", "vedic_time_of_day",
+    "vedic_vara_at_kali_days", "vedic_time_of_day", "vedic_time_of_day_diti",
     "kala_substrate_stamp",
 ]

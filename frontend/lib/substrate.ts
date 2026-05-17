@@ -258,6 +258,7 @@ export function vedicVaraAtKaliDays(kaliCivilDays: number): VaraLayer {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export interface DaySubdivision {
+  pole?: "aditi" | "diti"
   fraction_of_day: number
   hours_from_kamakhya_midnight: number
   muhurta_index: number
@@ -266,6 +267,8 @@ export interface DaySubdivision {
   vighati_index: number
   prana_index: number
   vipala_fractional: number
+  compression_vs_aditi?: number
+  vipala_seconds?: number
 }
 
 export function vedicTimeOfDay(kaliCivilDays: number): DaySubdivision {
@@ -281,6 +284,7 @@ export function vedicTimeOfDay(kaliCivilDays: number): DaySubdivision {
   const pranaIdx = Math.floor(pranaFloat)
   const vipalaFloat = (pranaFloat - pranaIdx) * 10.0
   return {
+    pole: "aditi",
     fraction_of_day: Math.round(frac * 1e6) / 1e6,
     hours_from_kamakhya_midnight: Math.round(hours * 1e4) / 1e4,
     muhurta_index: muhurtaIdx + 1,
@@ -289,6 +293,42 @@ export function vedicTimeOfDay(kaliCivilDays: number): DaySubdivision {
     vighati_index: vighatiIdx + 1,
     prana_index: pranaIdx + 1,
     vipala_fractional: Math.round(vipalaFloat * 1e4) / 1e4,
+  }
+}
+
+/**
+ * DITI pole — Pisano-of-Ideal = 3 reduction at each (2,3,5)-factorable cascade.
+ * Each subunit is 3× longer than Aditi (total 3³ = 27× smallest-unit ratio).
+ *   • muhūrta: 30 → 10/day        (144 min each)
+ *   • ghaṭi:   60 → 20/day        (72 min each)
+ *   • vighaṭi: 60 → 20/ghaṭi      (3.6 min each)
+ *   • prāṇa:    6 → 2/vighaṭi     (108 sec each)
+ *   • vipala: 10/prāṇa = 10.8 sec (vs Aditi's 0.4 sec)
+ */
+export function vedicTimeOfDayDiti(kaliCivilDays: number): DaySubdivision {
+  const frac = kaliCivilDays - Math.floor(kaliCivilDays)
+  const hours = frac * 24.0
+  const muhurtaFloat = frac * 10.0       // 30 / 3
+  const muhurtaIdx = Math.floor(muhurtaFloat)
+  const ghatiFloat = frac * 20.0         // 60 / 3
+  const ghatiIdx = Math.floor(ghatiFloat)
+  const vighatiFloat = (ghatiFloat - ghatiIdx) * 20.0   // 60 / 3
+  const vighatiIdx = Math.floor(vighatiFloat)
+  const pranaFloat = (vighatiFloat - vighatiIdx) * 2.0  // 6 / 3
+  const pranaIdx = Math.floor(pranaFloat)
+  const vipalaFloat = (pranaFloat - pranaIdx) * 10.0
+  return {
+    pole: "diti",
+    fraction_of_day: Math.round(frac * 1e6) / 1e6,
+    hours_from_kamakhya_midnight: Math.round(hours * 1e4) / 1e4,
+    muhurta_index: muhurtaIdx + 1,                    // 1..10
+    muhurta_fractional: Math.round((muhurtaFloat - muhurtaIdx) * 1e4) / 1e4,
+    ghati_index: ghatiIdx + 1,                        // 1..20
+    vighati_index: vighatiIdx + 1,                    // 1..20
+    prana_index: pranaIdx + 1,                        // 1..2
+    vipala_fractional: Math.round(vipalaFloat * 1e4) / 1e4,
+    compression_vs_aditi: 27,
+    vipala_seconds: 10.8,
   }
 }
 
@@ -499,6 +539,8 @@ export interface MeridianFullView extends MeridianView {
   category: MeridianCategory
   offset_from_ujjain_days: number
   offset_from_ujjain_min: number
+  day_subdivision_aditi: DaySubdivision
+  day_subdivision_diti: DaySubdivision
 }
 
 export function computeMeridianViews(
@@ -508,6 +550,8 @@ export function computeMeridianViews(
   for (const m of MERIDIAN_REGISTRY) {
     const offsetDays = (m.lon_deg - UJJAIN_LON_DEG) / 15.0 / 24.0
     const kM = kaliDaysUjjain + offsetDays
+    const aditi = vedicTimeOfDay(kM)
+    const diti = vedicTimeOfDayDiti(kM)
     out[m.id] = {
       id: m.id,
       label_en: m.label_en,
@@ -520,7 +564,9 @@ export function computeMeridianViews(
       offset_from_ujjain_min: Math.round(offsetDays * 1440 * 1e2) / 1e2,
       kali_civil_days: Math.round(kM * 1e6) / 1e6,
       vara: vedicVaraAtKaliDays(kM),
-      day_subdivision: vedicTimeOfDay(kM),
+      day_subdivision: aditi,         // backward-compat (= Aditi)
+      day_subdivision_aditi: aditi,
+      day_subdivision_diti: diti,
     }
   }
   return out

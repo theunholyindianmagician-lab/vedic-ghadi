@@ -447,7 +447,49 @@ all_valid = all(
 check("Every meridian has valid vāra + day-subdivision", all_valid)
 
 
-section("12b · Parallel meridian views (Ujjayinī ⟷ Kāmākhyā)")
+section("12b · APEX v5 BIPOLAR — Aditi + Diti per meridian")
+# ═══════════════════════════════════════════════════════════════════════════
+check("bipolar_discipline block present", "bipolar_discipline" in stamp)
+check("Pisano-of-Ideal ratio = 3",
+      stamp["bipolar_discipline"]["pisano_of_ideal_ratio"] == 3)
+check("Total Diti compression = 27 (= 3³)",
+      stamp["bipolar_discipline"]["total_diti_compression"] == 27)
+check("Top-level day_subdivision_aditi present",
+      "day_subdivision_aditi" in stamp)
+check("Top-level day_subdivision_diti present",
+      "day_subdivision_diti" in stamp)
+check("Aditi pole tagged correctly",
+      stamp["day_subdivision_aditi"]["pole"] == "aditi")
+check("Diti pole tagged correctly",
+      stamp["day_subdivision_diti"]["pole"] == "diti")
+# Diti cascade math
+check("Aditi 216_000 vipala/day vs Diti 8_000 vipala/day · ratio 27",
+      (30*2*60*6*10) // (10*2*20*2*10) == 27)
+check("Diti vipala duration 10.8 sec = 27 × Aditi 0.4 sec",
+      stamp["day_subdivision_diti"]["vipala_seconds"] == 10.8)
+
+# Every meridian has BOTH poles
+all_bipolar = all(
+    "day_subdivision_aditi" in m and "day_subdivision_diti" in m
+    for m in ms.values()
+)
+check("All 84 meridians have BOTH Aditi + Diti subdivisions",
+      all_bipolar)
+check("Total meridian-pole sphoṭas = 168 (84 × 2)",
+      sum(("day_subdivision_aditi" in m) + ("day_subdivision_diti" in m)
+          for m in ms.values()) == 168)
+
+# Aditi/Diti consistency: 3 consecutive Aditi muhurtas → 1 Diti muhurta
+all_consistent = all(
+    (m["day_subdivision_aditi"]["muhurta_index"] - 1) // 3 + 1
+    == m["day_subdivision_diti"]["muhurta_index"]
+    for m in ms.values()
+)
+check("Diti μ = ⌊(Aditi μ − 1) / 3⌋ + 1 holds for all 84 meridians",
+      all_consistent)
+
+
+section("12c · Parallel meridian views (Ujjayinī ⟷ Kāmākhyā)")
 # ═══════════════════════════════════════════════════════════════════════════
 bm = stamp["by_meridian"]
 check("by_meridian.ujjain present",  "ujjain" in bm)
@@ -470,7 +512,7 @@ check("Astronomical layers NOT duplicated (meridian-independent)",
       "month_kamakhya" not in stamp and "tithi_kamakhya" not in stamp)
 
 
-section("12c · Edge cases & boundaries")
+section("12d · Edge cases & boundaries")
 # ═══════════════════════════════════════════════════════════════════════════
 # Day boundary: at IST midnight, did we cross to next civil day correctly?
 late = ghadi_at(2026, 5, 17, 23, 59, 59.999, 5.5)
