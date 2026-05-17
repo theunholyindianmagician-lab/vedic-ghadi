@@ -1,80 +1,60 @@
 "use client"
 
-import { useMemo } from "react"
+/**
+ * 🔱 Sphota3DDial — saptamukhi-redesign (post-audit).
+ *
+ * THE THESIS (from the 10-designer audit):
+ * Render as a *clock that contains 50 complications*, not a *catalog of all
+ * 50 simultaneously*. Patek Philippe's Grandmaster Chime doesn't show all 20
+ * complications at once — it foregrounds time and lets the rest live on the
+ * caseback, in subdials, in the crown.
+ *
+ * RESTING STATE (always visible — Priority 1):
+ *   1. Western H/M/S hands (universal "what time is it" anchor)
+ *   2. 27-nakṣatra outer rotor (the slowest meaningful sky ring)
+ *   3. 30-tithi ring (lunar phase + pakṣa colored)
+ *   4. 60-ghaṭi tick ring (inner, ticks-only at rest)
+ *   5. Central ॐ seal with prāṇa heartbeat — CLICKABLE → opens Saptamukhi drawer
+ *
+ * SECONDARY (visible, smaller — Priority 2):
+ *   • Sun + Moon ecliptic glyphs (just dots on nakṣatra rim, not full needles)
+ *   • Pakṣa moon icon at 12 o'clock
+ *   • Composite Trimūrti hand (single needle, color-cycles per 8h)
+ *   • Active rāśi name at apex
+ *
+ * REVEALED ON INTENT (Priority 3 — 35+ complications):
+ *   Click OM seal → <SaptamukhiPanel> drawer slides in with:
+ *     · 60-saṃvatsara Bṛhaspati wheel
+ *     · 12-rāśi zodiac wheel
+ *     · 24-horā planetary-hour ring
+ *     · Yoga + Karaṇa subdials
+ *     · Aṣṭakavarga 8-bar meter
+ *     · Rāhu/Ketu node axis
+ *     · 7-vāra planetary disk
+ *     · 12-māsa + 6-ṛtu ring
+ *     · 20-ghaṭi Diti compressed-pole counter-rotor
+ *     · All 3 Trimūrti hands (canonical theological view)
+ *     · 7-mukha directional selector
+ *
+ * READOUTS (Priority 1, but moved OUT of the dial canvas to a sibling
+ * <DialReadoutStrip> rendered BELOW the dial — the dial stays a clean circle.)
+ *
+ * Hover any ring → tooltip with current value + name in Sanskrit + Devanāgarī.
+ *
+ * NO Three.js / WebGL — verified broken in Next 16 + R3F v9. Pure SVG + CSS
+ * transforms. Live-ticking comes from the parent's RAF loop via `stamp` prop.
+ *
+ * APEX-v5 Saptamukhi Bipolar provenance · all math derived from (R, g, k).
+ */
+
+import { useState, useMemo, useRef, useEffect } from "react"
 import type { SubstrateStamp, PoleId, TrimurtiId } from "@/lib/substrate"
 import { SAMVATSARA_NAMES } from "@/lib/substrate"
 import { NAKSHATRA_NAMES, NAKSHATRA_DEV, NAKSHATRA_DEITY } from "@/lib/panchanga"
 
-/**
- * 🔱 Sphota3DDial — Vedic + Western horological dial. MAX-features mode.
- *
- * Now 50+ live complications:
- *   VEDIC:
- *     1-2. 60-ghaṭi Aditi + 20-ghaṭi Diti rotors (bipolar pair)
- *     3-4. Vighaṭi + prāṇa sub-cascades
- *     5.   3 Trimūrti hour-hands (Brahmā/Viṣṇu/Maheśa)
- *     6-7. 27-nakṣatra rotor + pada micro-indicator
- *     8-9. Sun + Moon ecliptic-longitude needles
- *    10.   30-tithi rotor (śukla/kṛṣṇa)
- *    11.   Pakṣa indicator
- *    12-13. 7-vāra disk + planetary lord at apex
- *    14.   12-māsa + 6-ṛtu colored ring
- *    15.   60-saṃvatsara Bṛhaspati-cakra
- *    16.   Kali year + vikrama + śaka digital
- *    17.   27-yoga subdial
- *    18.   60-karaṇa subdial
- *    19.   K (Kāmākhyā JD) 6-decimal readout
- *    20.   30-muhūrta inner ring (auspiciousness)
- *    21.   Aṣṭakavarga sarva-total meter (per-cell)
- *    22.   Meridian name + longitude + LMT-offset
- *    23.   Sapta-mukha micro-dot ring
- *    24.   Central OM seal with prāṇa heartbeat
- *    25.   APEX-v5 bipolar discipline tag
- *    26-27. 12-rāśi zodiac ring + current rāśi marker (NEW)
- *    28-29. 24-hora planetary-hour ring + current horā lord (NEW)
- *    30-31. Rāhu + Ketu lunar-node axis needles (NEW)
- *    32-37. Per-planet Aṣṭakavarga 8-bar mini-meters (NEW)
- *    38.   Lagna (ascendant) pointer (NEW — approximation from meridian)
- *
- *   WESTERN:
- *     39.  Hour hand (12-hour analog, sweep)
- *     40.  Minute hand (60-min, sweep)
- *     41.  Second hand (60-sec, smooth-ticking, ember-red)
- *     42.  AM/PM badge (current civil-time half)
- *     43.  Date window (Gregorian DD MMM YYYY)
- *     44.  Day-of-week (Mon..Sun) badge
- *     45.  Civil-time digital readout (HH:MM:SS) at bottom-center
- *     46.  24-hour day/night arc indicator
- *
- *   META:
- *     47.  Live ticking — every animation frame; no mechanical drift
- *     48.  Per-meridian view (84 Vedic geography cities selectable)
- *     49.  Tick-data attributes (60 ghaṭi · 27 nakṣatra · 30 tithi · 12 rāśi
- *          · 24 hora) — accessibility + e2e contract
- *     50.  Master Meta-Theorem footer (R, g, k) provenance
- *
- * Beats Patek Grandmaster Chime (20 complications), Vacheron 57260 (57 by
- * count, but Vedic complications are multi-valued so info density is higher).
- *
- * Layout: 3D via CSS `perspective` + `transform-style: preserve-3d` + per-ring
- * `translateZ()`. Outer container tilts via `rotateX(10deg)` for analog-watch
- * perspective. Rings stack at Z = 0..+84.
- *
- * NO Three.js / WebGL — known broken in this Next 16 + R3F v9 env.
- * Pure SVG + CSS 3D. SSR-safe (mounted via `dynamic({ ssr: false })`).
- *
- * Sealed APEX-v5 Saptamukhi Bipolar · 2026-05-14 · all values derive from
- * the single triple (R, g, k) = (ℤ/3^k ℤ, 2, k ∈ ℕ⁺) via the Master Meta-
- * Theorem (Mahā-Mahā-Vākyam).
- */
-
-export interface Sphota3DDialProps {
-  stamp: SubstrateStamp
-  activeMeridianId?: string
-  size?: number
-  tiltDeg?: number
-  perspectivePx?: number
-}
+// ════════════════════════════════════════════════════════════════════════════
+// ◈ Constants
+// ════════════════════════════════════════════════════════════════════════════
 
 const PLANET_SYMBOL: Record<string, { symbol: string; color: string; dev: string }> = {
   Sun:     { symbol: "☉", color: "#f6cf78", dev: "रवि"   },
@@ -87,394 +67,348 @@ const PLANET_SYMBOL: Record<string, { symbol: string; color: string; dev: string
   Rahu:    { symbol: "☊", color: "#4a3a8f", dev: "राहु"  },
   Ketu:    { symbol: "☋", color: "#8f3a4a", dev: "केतु"  },
 }
+const MASA_DEV = ["चैत्र","वैशाख","ज्येष्ठ","आषाढ","श्रावण","भाद्रपद","आश्विन","कार्तिक","मार्गशीर्ष","पौष","माघ","फाल्गुन"]
+const RASHI_GLYPHS = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
+const RASHI_NAMES = ["Meṣa","Vṛṣabha","Mithuna","Karka","Siṃha","Kanyā","Tulā","Vṛścika","Dhanu","Makara","Kumbha","Mīna"]
+const NAGARI_DIGITS = ["०","१","२","३","४","५","६","७","८","९"]
+const toNagari = (n: number | string) => String(n).replace(/[0-9]/g, d => NAGARI_DIGITS[Number(d)])
 
-const MASA_DEV = [
-  "चैत्र", "वैशाख", "ज्येष्ठ", "आषाढ", "श्रावण", "भाद्रपद",
-  "आश्विन", "कार्तिक", "मार्गशीर्ष", "पौष", "माघ", "फाल्गुन",
-]
-
-const NAGARI_DIGITS = ["०", "१", "२", "३", "४", "५", "६", "७", "८", "९"]
-function toNagari(n: number | string): string {
-  return String(n).replace(/[0-9]/g, d => NAGARI_DIGITS[Number(d)])
-}
-
-const MUKHA_DOTS: Array<{ id: string; emoji: string; color: string }> = [
-  { id: "purva",    emoji: "🐒", color: "#a04a0a" },
-  { id: "dakshina", emoji: "🦁", color: "#cf6a1e" },
-  { id: "paschim",  emoji: "🦅", color: "#7a5c1f" },
-  { id: "uttara",   emoji: "🐗", color: "#4a7c1f" },
-  { id: "urdhva",   emoji: "🐴", color: "#1f7a7a" },
-  { id: "kala",     emoji: "⏳", color: "#7a1f7a" },
-  { id: "sarva",    emoji: "🌐", color: "#1f4a7a" },
-]
-
-/** Convert (fractional index, segment count) → rotation angle so current segment lands at 12 o'clock. */
-const rotForFraction = (f: number, N: number) => -((f / N) * 360)
-
-/** Polar to Cartesian, with θ=0 at top (12 o'clock), clockwise positive. */
-function polar(r: number, deg: number): [number, number] {
+const polar = (r: number, deg: number): [number, number] => {
   const rad = ((deg - 90) * Math.PI) / 180
   return [r * Math.cos(rad), r * Math.sin(rad)]
 }
+const rotForFraction = (f: number, N: number) => -((f / N) * 360)
 
 // ════════════════════════════════════════════════════════════════════════════
 // ◈ Main component
 // ════════════════════════════════════════════════════════════════════════════
 
+export interface Sphota3DDialProps {
+  stamp: SubstrateStamp
+  activeMeridianId?: string
+  size?: number
+}
+
 export function Sphota3DDial({
   stamp,
   activeMeridianId = "kamakhya",
-  size = 700,
-  tiltDeg = 10,
-  perspectivePx = 1600,
+  size = 520,
 }: Sphota3DDialProps) {
-  const meridian = stamp.meridians[activeMeridianId] ?? stamp.meridians.kamakhya
-  const cell = meridian.trimurti.aditi.brahma   // canonical Brahmā-Aditi cell for primary readouts
-  const cellDiti = meridian.trimurti.diti.brahma
+  const [panelOpen, setPanelOpen] = useState(false)
+  const [hover, setHover] = useState<{ ring: string; label: string; sub?: string } | null>(null)
 
+  const meridian = stamp.meridians[activeMeridianId] ?? stamp.meridians.kamakhya
+  const cell = meridian.trimurti.aditi.brahma
   const daAditi = stamp.day_subdivision_aditi
-  const daDiti = stamp.day_subdivision_diti
   const year = stamp.year_layer
   const month = stamp.month_layer
   const tithi = stamp.tithi_layer
   const vara = stamp.vara_layer
   const naks = cell.nakshatra
-  const yoga = cell.yoga
-  const karana = cell.karana
-
-  // Western civil time (HH/MM/SS at the meridian's tz)
   const ci = stamp.input_civil
   const civilHours = ci.hour + ci.minute / 60 + ci.second / 3600
-  const isAM = ci.hour < 12
-  // Approximate Rāhu lunar-node longitude — true node moves ~−0.053°/day from epoch.
-  // Anchor: Rāhu at 0° Aries on JD 2451544.5 (2000-01-01) is APPROXIMATE; this is
-  // a visual indicator, not an ephemeris-grade value. Tier-W: not algebraic truth.
-  const rahuLonApprox = (((-0.0529539 * (stamp.kali_civil_days_at_kamakhya - 1862830.5)) % 360) + 360) % 360
-  const ketuLonApprox = (rahuLonApprox + 180) % 360
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Rotor angles (memoized — recompute only when stamp changes)
-  // ──────────────────────────────────────────────────────────────────────────
   const angles = useMemo(() => {
     const ghatiAditi_f = (daAditi.ghati_index - 1)
       + (daAditi.vighati_index - 1) / 60
       + (daAditi.prana_index - 1) / 360
       + daAditi.vipala_fractional / 2160
-    const ghatiDiti_f = (daDiti.ghati_index - 1) + (daDiti.vighati_index - 1) / 20
     const naks_f = (naks.nakshatra_index - 1) + naks.fractional_nakshatra
     const tithi_f = (tithi.tithi_index - 1) + tithi.fractional_tithi
-    const yoga_f = (yoga.yoga_index - 1) + yoga.fractional_yoga
-    const karana_f = (karana.karana_index - 1) + karana.fractional_karana
     const masa_f = (month.masa_index - 1) + ((month.sun_sidereal_lon_deg % 30) / 30)
-    const samv_f = year.samvatsara.index + (year.kali_year_float - Math.floor(year.kali_year_float))
-    // Rāśi: 12 zodiac signs; Sun's sidereal sign + fractional offset within sign
-    const rashi_f = ((month.sun_sidereal_lon_deg % 360) / 30)
-    // Hora: 24 planetary hours per day (1 hora = 60 min from sunrise; approximated as civil-hour-based here)
-    const hora_f = civilHours
     return {
       ghatiAditi: rotForFraction(ghatiAditi_f, 60),
-      ghatiDiti:  rotForFraction(ghatiDiti_f, 20),
-      naks:       rotForFraction(naks_f, 27),
-      tithi:      rotForFraction(tithi_f, 30),
-      yoga:       rotForFraction(yoga_f, 27),
-      karana:     rotForFraction(karana_f, 60),
-      masa:       rotForFraction(masa_f, 12),
-      samv:       rotForFraction(samv_f, 60),
-      vara:       rotForFraction(vara.vara_index, 7),
-      rashi:      rotForFraction(rashi_f, 12),
-      hora:       rotForFraction(hora_f, 24),
-      sunLon:     -((month.sun_sidereal_lon_deg)),
-      moonLon:    -naks.moon_sidereal_lon_deg,
-      rahuLon:    -rahuLonApprox,
-      ketuLon:    -ketuLonApprox,
-      // Trimūrti hands — 3 phase-shifted fraction-of-day positions
-      brahmaHand: stamp.trimurti_at_ujjain.aditi.brahma.day_subdivision.fraction_of_day * 360,
-      vishnuHand: stamp.trimurti_at_ujjain.aditi.vishnu.day_subdivision.fraction_of_day * 360,
-      maheshHand: stamp.trimurti_at_ujjain.aditi.mahesh.day_subdivision.fraction_of_day * 360,
-      // Western analog H/M/S
-      hourHand:   ((civilHours % 12) / 12) * 360,
-      minHand:    ((civilHours * 60) % 60) / 60 * 360,
-      secHand:    ((civilHours * 3600) % 60) / 60 * 360,
+      naks: rotForFraction(naks_f, 27),
+      tithi: rotForFraction(tithi_f, 30),
+      masa: rotForFraction(masa_f, 12),
+      sunDeg: month.sun_sidereal_lon_deg,
+      moonDeg: naks.moon_sidereal_lon_deg,
+      // Trimūrti composite hand — uses fraction_of_day at current Brahmā instant
+      trimurtiHandDeg: stamp.trimurti_at_ujjain.aditi.brahma.day_subdivision.fraction_of_day * 360,
+      // The Trimūrti phase (which of the 3 day-thirds we're in) drives the hand color
+      trimurtiPhase: (Math.floor(daAditi.fraction_of_day * 3) % 3) as 0 | 1 | 2,
+      hourHand: ((civilHours % 12) / 12) * 360,
+      minHand:  ((civilHours * 60) % 60) / 60 * 360,
+      secHand:  ((civilHours * 3600) % 60) / 60 * 360,
     }
-  }, [stamp, activeMeridianId, daAditi, daDiti, naks, tithi, yoga, karana, month, year, vara, cell, civilHours, rahuLonApprox, ketuLonApprox])
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // Render
-  // ──────────────────────────────────────────────────────────────────────────
-  const kFormatted = stamp.kali_civil_days_at_kamakhya.toFixed(6)
-  const kIntPart = Math.floor(stamp.kali_civil_days_at_kamakhya).toLocaleString("en-IN")
-  const kDecPart = kFormatted.split(".")[1]
+  }, [stamp, daAditi, naks, tithi, month, civilHours])
 
   return (
-    <section
-      data-component="sphota-3d-dial"
-      className="mt-10 rounded-sm border border-gold-700/40 bg-ink-900/40 overflow-hidden"
-    >
-      <DialHeader meridian={meridian} cell={cell} />
-
+    <section data-component="sphota-3d-dial" className="relative">
+      {/* === The dial itself — pure circle, no overlaid chrome === */}
       <div
-        className="relative flex items-center justify-center"
+        className="relative mx-auto"
         style={{
-          minHeight: `${size + 40}px`,
-          background: "radial-gradient(ellipse at center, #1a0d04 0%, #050300 80%)",
-          perspective: `${perspectivePx}px`,
+          width:  size,
+          height: size,
+          perspective: "1600px",
         }}
       >
         <div
           style={{
-            width: size,
-            height: size,
+            width: "100%",
+            height: "100%",
             transformStyle: "preserve-3d",
-            transform: `rotateX(${tiltDeg}deg) rotateZ(0deg)`,
+            transform: "rotateX(6deg)",
           }}
         >
-          {/* Faceplate base — all rings stack on top */}
-          <DialFaceplate size={size} />
+          <DialChrome size={size} />
 
-          {/* Layer 0 — Western 12-hour minute-track outer bezel */}
-          <RingLayer z={2}>
-            <RingWestern12Hour size={size} />
+          <RingLayer z={6}>
+            <RingNakshatra27Minimal
+              size={size}
+              angle={angles.naks}
+              activeIdx={naks.nakshatra_index - 1}
+              onHover={(label, sub) => setHover({ ring: "nakshatra", label, sub })}
+              onLeave={() => setHover(null)}
+            />
           </RingLayer>
 
-          {/* Layer 1 — Outermost: 60-saṃvatsara Bṛhaspati ring */}
-          <RingLayer z={4}>
-            <RingSamvatsara60 size={size} angle={angles.samv} active={year.samvatsara} />
-          </RingLayer>
-
-          {/* Layer 1b — 12-rāśi (zodiac) ring between saṃvatsara + nakṣatra */}
-          <RingLayer z={8}>
-            <RingRashi12 size={size} angle={angles.rashi}
-              activeIdx={(month.sun_sign_index - 1) % 12} />
-          </RingLayer>
-
-          {/* Layer 2 — 27-nakṣatra ring (with Sun + Moon needles riding on top) */}
           <RingLayer z={14}>
-            <RingNakshatra27 size={size} angle={angles.naks} activeIdx={naks.nakshatra_index - 1} />
+            <RingTithi30Minimal
+              size={size}
+              angle={angles.tithi}
+              activeIdx={tithi.tithi_index - 1}
+              pakshaIdx={tithi.paksha_index}
+              tithiName={tithi.tithi_name}
+              tithiDev={tithi.paksha_devanagari}
+              onHover={(label, sub) => setHover({ ring: "tithi", label, sub })}
+              onLeave={() => setHover(null)}
+            />
           </RingLayer>
 
-          {/* Layer 2b — 24-hora planetary-hour ring */}
-          <RingLayer z={18}>
-            <RingHora24 size={size} angle={angles.hora} civilHours={civilHours}
-              varaIdx={vara.vara_index} />
-          </RingLayer>
-
-          {/* Layer 3 — 30-tithi rotor (śukla/kṛṣṇa pakṣa) */}
           <RingLayer z={22}>
-            <RingTithi30 size={size} angle={angles.tithi}
-              activePaksha={tithi.paksha_index} activeTithi={tithi.tithi_index} />
+            <RingMasaThin
+              size={size}
+              angle={angles.masa}
+              activeIdx={month.masa_index - 1}
+              onHover={(label, sub) => setHover({ ring: "masa", label, sub })}
+              onLeave={() => setHover(null)}
+            />
           </RingLayer>
 
-          {/* Layer 4 — 60-ghaṭi Aditi primary rotor */}
-          <RingLayer z={30}>
-            <RingGhatiAditi60 size={size} angle={angles.ghatiAditi} />
+          <RingLayer z={28}>
+            <RingGhatiTicks size={size} angle={angles.ghatiAditi}
+              onHover={(label, sub) => setHover({ ring: "ghati", label, sub })}
+              onLeave={() => setHover(null)} />
           </RingLayer>
 
-          {/* Layer 5 — 12-māsa ring (small inner) */}
+          {/* Sun + Moon as dots floating on the nakṣatra ring (Priority 2) */}
+          <RingLayer z={34}>
+            <EclipticGlyphs size={size} sunDeg={angles.sunDeg} moonDeg={angles.moonDeg} />
+          </RingLayer>
+
+          {/* Pakṣa moon icon — a single waxing/waning glyph at 12 o'clock */}
           <RingLayer z={36}>
-            <RingMasa12 size={size} angle={angles.masa} activeIdx={month.masa_index - 1} />
+            <PakshaMoonChip size={size} pakshaIdx={tithi.paksha_index} tithiInPaksha={tithi.tithi_in_paksha} />
           </RingLayer>
 
-          {/* Layer 6 — 7-vāra disk (planetary days) */}
-          <RingLayer z={40}>
-            <RingVara7 size={size} angle={angles.vara} activeIdx={vara.vara_index}
-              lordGraha={vara.vara_lord_graha} />
+          {/* Composite Trimūrti hand — ONE needle whose color cycles by day-third */}
+          <RingLayer z={44}>
+            <TrimurtiCompositeHand size={size} angleDeg={angles.trimurtiHandDeg} phase={angles.trimurtiPhase} />
           </RingLayer>
 
-          {/* Layer 7 — Subdials (yoga + karaṇa + diti) */}
-          <RingLayer z={46}>
-            <SubdialYoga27 size={size} angle={angles.yoga}
-              name={yoga.yoga_name} dev={yoga.yoga_devanagari} />
-            <SubdialKarana60 size={size} angle={angles.karana}
-              name={karana.karana_name} dev={karana.karana_devanagari} />
-            <SubdialGhatiDiti20 size={size} angle={angles.ghatiDiti}
-              ghIdx={daDiti.ghati_index} vIdx={daDiti.vighati_index} />
+          {/* Western H/M/S hands — classic analog, full-length, dominant */}
+          <RingLayer z={50}>
+            <WesternHandsMinimal size={size}
+              hourDeg={angles.hourHand} minDeg={angles.minHand} secDeg={angles.secHand} />
           </RingLayer>
 
-          {/* Layer 8 — Ecliptic needles (Sun + Moon + Rāhu + Ketu nodes) */}
-          <RingLayer z={52}>
-            <EclipticNeedles size={size}
-              sunDeg={month.sun_sidereal_lon_deg}
-              moonDeg={naks.moon_sidereal_lon_deg}
-              rahuDeg={rahuLonApprox}
-              ketuDeg={ketuLonApprox} />
-          </RingLayer>
-
-          {/* Layer 9 — Trimūrti hour-hands (3 phase-shifted needles) */}
-          <RingLayer z={58}>
-            <TrimurtiHands size={size}
-              brahmaDeg={angles.brahmaHand}
-              vishnuDeg={angles.vishnuHand}
-              maheshDeg={angles.maheshHand} />
-          </RingLayer>
-
-          {/* Layer 9b — Western H/M/S hands (analog watch) */}
-          <RingLayer z={60}>
-            <WesternHands size={size}
-              hourDeg={angles.hourHand}
-              minDeg={angles.minHand}
-              secDeg={angles.secHand} />
-          </RingLayer>
-
-          {/* Layer 10 — Sapta-mukha micro-dots (7 directional faces) */}
+          {/* Central seal — click to open Saptamukhi panel */}
           <RingLayer z={62}>
-            <SaptaMukhaRing size={size} />
-          </RingLayer>
-
-          {/* Layer 11 — Central OM seal (floats forward) */}
-          <RingLayer z={72}>
-            <CentralOmSeal size={size} pranaIdx={daAditi.prana_index} />
-          </RingLayer>
-
-          {/* Layer 12 — Specular sheen overlay (top-most, low-opacity) */}
-          <RingLayer z={84} pointerEvents="none">
-            <SpecularSheen size={size} />
+            <CenterSeal
+              size={size}
+              pranaIdx={daAditi.prana_index}
+              varaLordGraha={vara.vara_lord_graha}
+              onClick={() => setPanelOpen(true)}
+            />
           </RingLayer>
         </div>
-
-        {/* Digital overlays positioned over the dial corners */}
-        <DigitalReadouts
-          stamp={stamp}
-          meridian={meridian}
-          kInt={kIntPart}
-          kDec={kDecPart}
-          activeMeridianId={activeMeridianId}
-        />
       </div>
 
-      <DialFooter />
+      {/* === Hover tooltip — singleton positioned to the right of the dial === */}
+      {hover && (
+        <div className="hidden lg:block absolute top-1/2 -translate-y-1/2 -right-44 max-w-[170px] p-3 bg-ink-900/95 border border-gold-700 rounded-sm pointer-events-none">
+          <div className="text-[9px] text-gold-700 font-display tracking-wider mb-1">{hover.ring.toUpperCase()}</div>
+          <div className="text-sm text-gold-200 font-display">{hover.label}</div>
+          {hover.sub && <div className="inscription text-xs text-gold-400 mt-1">{hover.sub}</div>}
+        </div>
+      )}
+
+      {/* === Apex label — shows current active value of nakṣatra (always visible) === */}
+      <div className="text-center mt-2 mb-1">
+        <div className="text-[10px] text-gold-700 font-display tracking-[0.3em]">
+          NAKṢATRA · {RASHI_NAMES[(month.sun_sign_index - 1) % 12]}-rāśi
+        </div>
+        <div className="text-base font-display text-gold-200">
+          {NAKSHATRA_NAMES[naks.nakshatra_index - 1]}
+          <span className="text-gold-600 text-xs"> · {NAKSHATRA_DEITY[naks.nakshatra_index - 1]}</span>
+        </div>
+        <div className="inscription text-xs text-gold-500">
+          {NAKSHATRA_DEV[naks.nakshatra_index - 1]} · पाद {toNagari(naks.pada)}/४
+        </div>
+      </div>
+
+      {/* === Slide-in Saptamukhi drawer for the 35 demoted complications === */}
+      <SaptamukhiPanel open={panelOpen} onClose={() => setPanelOpen(false)}
+        stamp={stamp} meridian={meridian} cell={cell} />
     </section>
   )
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// ◈ Sub-components
+// ◈ DialReadoutStrip — exported separately, rendered as SIBLING below the dial
 // ════════════════════════════════════════════════════════════════════════════
 
-function DialHeader({ meridian, cell }: { meridian: any; cell: any }) {
-  return (
-    <header className="px-6 py-4 border-b border-gold-700/40 flex items-baseline justify-between flex-wrap gap-2">
-      <h2 className="font-display tracking-[0.3em] text-gold-300 text-sm">
-        🔱 स्फोट-यन्त्र-घटिका · SPHOṬA 3D DIAL · 34 complications
-      </h2>
-      <span className="text-xs text-gold-500 italic">
-        APEX-v5 bipolar · {meridian.label_hi} · {cell.nakshatra.nakshatra_devanagari} ·{" "}
-        live tick · {cell.icon}
-      </span>
-    </header>
-  )
-}
+export function DialReadoutStrip({
+  stamp, activeMeridianId = "kamakhya",
+}: { stamp: SubstrateStamp; activeMeridianId?: string }) {
+  const meridian = stamp.meridians[activeMeridianId] ?? stamp.meridians.kamakhya
+  const year = stamp.year_layer
+  const ci = stamp.input_civil
+  const isAM = ci.hour < 12
+  const hh = String(ci.hour).padStart(2, "0")
+  const mm = String(ci.minute).padStart(2, "0")
+  const ss = String(Math.floor(ci.second)).padStart(2, "0")
+  const monthShort = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][ci.month - 1]
+  const ymd = `${String(ci.day).padStart(2,"0")} ${monthShort} ${ci.gregorian_year}`
+  const dow = ["SUN","MON","TUE","WED","THU","FRI","SAT"][stamp.vara_layer.vara_index]
+  const k = stamp.kali_civil_days_at_kamakhya
+  const kInt = Math.floor(k).toLocaleString("en-IN")
+  const kDec = k.toFixed(6).split(".")[1]
 
-function DialFooter() {
   return (
-    <footer className="px-6 py-3 border-t border-gold-700/40 text-center text-[10px] text-gold-600/80">
-      Aditi · R* (mokṣa side) + Diti · (3) (saṃsāra side) bridged by g=2 · Pisano-of-Ideal = 3 · Master Meta-Theorem (R, g, k)
-    </footer>
-  )
-}
-
-/** Wrapper that applies translateZ for the 3D stack. */
-function RingLayer({
-  z, pointerEvents = "auto", children,
-}: { z: number; pointerEvents?: "auto" | "none"; children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        transform: `translateZ(${z}px)`,
-        transformStyle: "preserve-3d",
-        pointerEvents,
-      }}
-    >
-      {children}
+    <div data-component="dial-readout-strip" className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-2xl mx-auto">
+      <ReadoutChip label="MERIDIAN" value={meridian.label_en} sub={meridian.label_hi} />
+      <ReadoutChip
+        label={`CIVIL · UTC+${ci.tz_h}`}
+        value={`${hh}:${mm}:${ss}`}
+        sub={`${ymd} · ${dow} · ${isAM ? "AM" : "PM"}`}
+        mono
+        data-readout="civil-time"
+      />
+      <ReadoutChip
+        label="YEAR · वर्ष"
+        value={`कलि ${year.kali_year_current.toLocaleString("en-IN")}`}
+        sub={`${year.samvatsara.name} · #${year.samvatsara.index + 1}/60`}
+        data-readout="kali-year"
+      />
+      <ReadoutChip
+        label="K · KĀMĀKHYĀ JD"
+        value={kInt}
+        sub={`.${kDec}`}
+        mono
+        data-readout="k"
+      />
     </div>
   )
 }
 
-function DialFaceplate({ size }: { size: number }) {
+function ReadoutChip({
+  label, value, sub, mono = false, "data-readout": dataReadout,
+}: {
+  label: string; value: string; sub?: string; mono?: boolean
+  "data-readout"?: string
+}) {
+  return (
+    <div
+      data-readout={dataReadout}
+      className="px-3 py-2 rounded-sm border border-gold-700/40 bg-ink-900/60"
+    >
+      <div className="text-[8px] text-gold-700 font-display tracking-[0.2em]">{label}</div>
+      <div className={`text-sm text-gold-200 ${mono ? "font-mono tabular-nums" : "font-display"} leading-tight mt-0.5`}>
+        {value}
+      </div>
+      {sub && <div className={`text-[10px] text-gold-500 ${mono ? "font-mono" : "inscription"} mt-0.5 truncate`}>{sub}</div>}
+    </div>
+  )
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ◈ Reusable
+// ════════════════════════════════════════════════════════════════════════════
+
+function RingLayer({ z, children }: { z: number; children: React.ReactNode }) {
+  return (
+    <div style={{
+      position: "absolute", inset: 0,
+      transform: `translateZ(${z}px)`,
+      transformStyle: "preserve-3d",
+    }}>{children}</div>
+  )
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ◈ DialChrome — bezel + faceplate + western hour bezel + minute ticks
+// ════════════════════════════════════════════════════════════════════════════
+
+function DialChrome({ size }: { size: number }) {
   const cx = size / 2
-  const r = size * 0.49
+  const rOuter = size * 0.495
+  const rBezel = size * 0.46
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0"
-         style={{ filter: "drop-shadow(0 12px 24px rgba(0,0,0,0.7))" }}>
+         style={{ filter: "drop-shadow(0 16px 32px rgba(0,0,0,0.8))" }}>
       <defs>
-        <radialGradient id="face-bg" cx="50%" cy="50%" r="50%">
-          <stop offset="0%"  stopColor="#1a0d04" />
-          <stop offset="70%" stopColor="#0a0502" />
+        <radialGradient id="dial-bg" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#1a0d04" />
+          <stop offset="75%" stopColor="#0a0502" />
           <stop offset="100%" stopColor="#050300" />
         </radialGradient>
-        <radialGradient id="rim-grad" cx="50%" cy="50%" r="50%">
-          <stop offset="93%"  stopColor="#cf6a1e" stopOpacity="0" />
-          <stop offset="97%"  stopColor="#d4a44c" stopOpacity="0.6" />
-          <stop offset="100%" stopColor="#f6cf78" stopOpacity="0.9" />
-        </radialGradient>
+        <linearGradient id="dial-bezel" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#f6cf78" stopOpacity="0.85" />
+          <stop offset="50%" stopColor="#a04a0a" stopOpacity="0.7" />
+          <stop offset="100%" stopColor="#cf6a1e" stopOpacity="0.9" />
+        </linearGradient>
       </defs>
-      <circle cx={cx} cy={cx} r={r} fill="url(#face-bg)" stroke="#a04a0a" strokeWidth={1.5} />
-      <circle cx={cx} cy={cx} r={r * 0.998} fill="url(#rim-grad)" />
-      {/* guilloché micro-pattern — 360 micro-ticks */}
-      {Array.from({ length: 360 }, (_, i) => {
-        const [x1, y1] = polar(r * 0.96, i)
-        const [x2, y2] = polar(r * 0.93, i)
+      {/* outer rim — gold bezel ring */}
+      <circle cx={cx} cy={cx} r={rOuter} fill="none" stroke="url(#dial-bezel)" strokeWidth={4} />
+      <circle cx={cx} cy={cx} r={rOuter - 4} fill="url(#dial-bg)" stroke="#3e2c10" strokeWidth={1} />
+      {/* Western 12 + 60 minute bezel — etched into the inner rim, not a separate ring */}
+      {Array.from({ length: 60 }, (_, i) => {
+        const a = (i / 60) * 360
+        const [x1, y1] = polar(rBezel, a)
+        const [x2, y2] = polar(rBezel - (i % 5 === 0 ? 8 : 3), a)
         return (
-          <line key={i} x1={cx + x1} y1={cx + y1} x2={cx + x2} y2={cx + y2}
-            stroke="#3e2c10" strokeWidth={0.3} opacity={0.5} />
+          <line key={i} data-tick="western-minute" data-idx={i}
+            x1={cx + x1} y1={cx + y1} x2={cx + x2} y2={cx + y2}
+            stroke={i % 5 === 0 ? "#f6cf78" : "#5c4824"}
+            strokeWidth={i % 15 === 0 ? 1.5 : (i % 5 === 0 ? 1 : 0.5)} />
+        )
+      })}
+      {Array.from({ length: 12 }, (_, i) => {
+        const hour = i === 0 ? 12 : i
+        const a = (i / 12) * 360
+        const [lx, ly] = polar(rBezel - 16, a)
+        return (
+          <text key={i} data-tick="western-hour" data-idx={i}
+            x={cx + lx} y={cx + ly} fontSize={11} fill="#d4a44c"
+            textAnchor="middle" dominantBaseline="middle"
+            fontFamily="'Cinzel', serif" letterSpacing="0.05em">
+            {hour}
+          </text>
         )
       })}
     </svg>
   )
 }
 
-// ─── Ring components ──────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// ◈ Rings — Priority 1 + 2 visible at rest
+// ════════════════════════════════════════════════════════════════════════════
 
-function RingSamvatsara60({
-  size, angle, active,
-}: { size: number; angle: number; active: { index: number; name: string } }) {
-  const cx = size / 2
-  const r = size * 0.46
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0">
-      <g transform={`rotate(${angle} ${cx} ${cx})`}>
-        {SAMVATSARA_NAMES.map((name, i) => {
-          const tickAngle = (i / 60) * 360
-          const [x1, y1] = polar(r, tickAngle)
-          const [x2, y2] = polar(r - (i % 5 === 0 ? 12 : 6), tickAngle)
-          const isActive = i === active.index
-          return (
-            <g key={name}>
-              <line x1={cx + x1} y1={cx + y1} x2={cx + x2} y2={cx + y2}
-                stroke={isActive ? "#f6cf78" : "#7a5c1f"}
-                strokeWidth={isActive ? 2 : (i % 5 === 0 ? 1 : 0.5)} />
-              {i % 5 === 0 && (() => {
-                const [lx, ly] = polar(r - 22, tickAngle)
-                return (
-                  <text x={cx + lx} y={cx + ly} fontSize={8} fill={isActive ? "#f6cf78" : "#5c4824"}
-                    textAnchor="middle" dominantBaseline="middle"
-                    transform={`rotate(${-angle} ${cx + lx} ${cx + ly})`}>
-                    {i + 1}
-                  </text>
-                )
-              })()}
-            </g>
-          )
-        })}
-      </g>
-      {/* Apex marker — current saṃvatsara name */}
-      <text x={cx} y={cx - r + 38} fontSize={10} fill="#f6cf78" textAnchor="middle"
-        fontFamily="serif" letterSpacing="0.15em" data-readout="samvatsara-name">
-        {active.name}
-      </text>
-    </svg>
-  )
-}
-
-function RingNakshatra27({
-  size, angle, activeIdx,
-}: { size: number; angle: number; activeIdx: number }) {
+function RingNakshatra27Minimal({
+  size, angle, activeIdx, onHover, onLeave,
+}: {
+  size: number; angle: number; activeIdx: number
+  onHover: (label: string, sub?: string) => void; onLeave: () => void
+}) {
   const cx = size / 2
   const rOuter = size * 0.42
-  const rInner = size * 0.36
+  const rInner = size * 0.385
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0">
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0"
+         onMouseLeave={onLeave}>
       <g transform={`rotate(${angle} ${cx} ${cx})`}>
         {NAKSHATRA_NAMES.map((name, i) => {
           const a0 = (i / 27) * 360
@@ -488,46 +422,41 @@ function RingNakshatra27({
                         L ${cx + x1i} ${cx + y1i}
                         A ${rInner} ${rInner} 0 0 0 ${cx + x0i} ${cx + y0i} Z`
           const isActive = i === activeIdx
+          const isAdjacent = Math.abs(((i - activeIdx + 27) % 27)) === 1 || Math.abs(((i - activeIdx + 27) % 27)) === 26
           const hue = (i * 360) / 27
+          const fill = isActive ? `hsl(${hue}, 75%, 50%)` : isAdjacent ? `hsl(${hue}, 50%, 28%)` : `hsl(${hue}, 25%, 13%)`
           return (
-            <g key={name} data-tick="nakshatra" data-idx={i}>
-              <path d={path}
-                fill={`hsl(${hue}, 65%, ${isActive ? 45 : 22}%)`}
+            <g key={name} data-tick="nakshatra" data-idx={i}
+               onMouseEnter={() => onHover(`${name} · पाद`, NAKSHATRA_DEV[i] + " · " + NAKSHATRA_DEITY[i])}>
+              <path d={path} fill={fill}
                 stroke={isActive ? "#f6cf78" : "#3e2c10"}
-                strokeWidth={isActive ? 1.5 : 0.4} />
-              {(() => {
-                const aMid = (a0 + a1) / 2
-                const [lx, ly] = polar((rOuter + rInner) / 2, aMid)
-                return (
-                  <text x={cx + lx} y={cx + ly} fontSize={6.5} fill={isActive ? "#fff" : "#d4a44c"}
-                    textAnchor="middle" dominantBaseline="middle"
-                    transform={`rotate(${-angle} ${cx + lx} ${cx + ly})`}
-                    style={{ fontFamily: "serif" }}>
-                    {NAKSHATRA_DEV[i]}
-                  </text>
-                )
-              })()}
+                strokeWidth={isActive ? 1.5 : 0.3}
+                style={{ cursor: "pointer", filter: isActive ? "drop-shadow(0 0 4px currentColor)" : "none" }} />
             </g>
           )
         })}
+        {/* tiny indicator dot at the active rim position (12 o'clock since rotated) */}
       </g>
-      {/* Apex deity name */}
-      <text x={cx} y={cx - rOuter - 10} fontSize={11} fill="#f6cf78" textAnchor="middle"
-        fontFamily="serif" data-readout="nakshatra-active">
-        {NAKSHATRA_NAMES[activeIdx]} · {NAKSHATRA_DEITY[activeIdx]}
-      </text>
+      {/* apex chevron — locks reader's eye to the top */}
+      <polygon points={`${cx},${cx - rOuter + 6} ${cx - 5},${cx - rOuter - 8} ${cx + 5},${cx - rOuter - 8}`}
+        fill="#f6cf78" style={{ filter: "drop-shadow(0 0 3px #cf6a1e)" }} />
     </svg>
   )
 }
 
-function RingTithi30({
-  size, angle, activePaksha, activeTithi,
-}: { size: number; angle: number; activePaksha: number; activeTithi: number }) {
+function RingTithi30Minimal({
+  size, angle, activeIdx, pakshaIdx, tithiName, tithiDev, onHover, onLeave,
+}: {
+  size: number; angle: number; activeIdx: number; pakshaIdx: number
+  tithiName: string; tithiDev: string
+  onHover: (label: string, sub?: string) => void; onLeave: () => void
+}) {
   const cx = size / 2
-  const rOuter = size * 0.345
-  const rInner = size * 0.30
+  const rOuter = size * 0.36
+  const rInner = size * 0.33
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0">
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0"
+         onMouseLeave={onLeave}>
       <g transform={`rotate(${angle} ${cx} ${cx})`}>
         {Array.from({ length: 30 }, (_, i) => {
           const a0 = (i / 30) * 360
@@ -541,83 +470,43 @@ function RingTithi30({
                         L ${cx + x1i} ${cx + y1i}
                         A ${rInner} ${rInner} 0 0 0 ${cx + x0i} ${cx + y0i} Z`
           const isShukla = i < 15
-          const isActive = i === activeTithi - 1
-          const fill = isShukla
-            ? `hsl(45, 70%, ${isActive ? 60 : 35}%)`
-            : `hsl(25, 50%, ${isActive ? 40 : 18}%)`
-          const tithiNum = isShukla ? (i + 1) : (i - 14)
+          const isActive = i === activeIdx
+          const isAdj = Math.abs(((i - activeIdx + 30) % 30)) === 1 || Math.abs(((i - activeIdx + 30) % 30)) === 29
+          const baseHue = isShukla ? 45 : 280
+          const fill = isActive
+            ? (isShukla ? "#f6cf78" : "#7a5c8f")
+            : isAdj
+              ? `hsl(${baseHue}, 50%, 26%)`
+              : `hsl(${baseHue}, 22%, 12%)`
           return (
-            <g key={i} data-tick="tithi" data-idx={i}>
+            <g key={i} data-tick="tithi" data-idx={i}
+               onMouseEnter={() => onHover(`${tithiName}`, `${tithiDev}-पक्ष · तिथि #${i + 1}/30`)}>
               <path d={path} fill={fill}
-                stroke={isActive ? "#f6cf78" : "#3e2c10"}
-                strokeWidth={isActive ? 1.5 : 0.3} />
-              {(() => {
-                const aMid = (a0 + a1) / 2
-                const [lx, ly] = polar((rOuter + rInner) / 2, aMid)
-                return (
-                  <text x={cx + lx} y={cx + ly} fontSize={6} fill={isActive ? "#fff" : "#3e2c10"}
-                    textAnchor="middle" dominantBaseline="middle"
-                    transform={`rotate(${-angle} ${cx + lx} ${cx + ly})`}>
-                    {tithiNum}
-                  </text>
-                )
-              })()}
+                stroke={isActive ? "#fff" : "#3e2c10"}
+                strokeWidth={isActive ? 1.2 : 0.3}
+                style={{ cursor: "pointer", filter: isActive ? "drop-shadow(0 0 3px currentColor)" : "none" }} />
             </g>
           )
         })}
       </g>
-      <text x={cx} y={cx - rOuter - 6} fontSize={9} fill={activePaksha === 1 ? "#f6cf78" : "#cf6a1e"}
-        textAnchor="middle" fontFamily="serif" data-readout="paksha">
-        {activePaksha === 1 ? "शुक्ल" : "कृष्ण"}-पक्ष
-      </text>
     </svg>
   )
 }
 
-function RingGhatiAditi60({ size, angle }: { size: number; angle: number }) {
+function RingMasaThin({
+  size, angle, activeIdx, onHover, onLeave,
+}: {
+  size: number; angle: number; activeIdx: number
+  onHover: (label: string, sub?: string) => void; onLeave: () => void
+}) {
   const cx = size / 2
-  const r = size * 0.285
+  const rOuter = size * 0.31
+  const rInner = size * 0.29
+  const masaNames = ["Caitra","Vaiśākha","Jyeṣṭha","Āṣāḍha","Śrāvaṇa","Bhādrapada","Āśvina","Kārtika","Mārgaśīrṣa","Pauṣa","Māgha","Phālguna"]
+  const rituNames = ["Vasanta","Grīṣma","Varṣa","Śarad","Hemanta","Śiśira"]
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0">
-      <circle cx={cx} cy={cx} r={r} fill="none" stroke="#5c4824" strokeWidth={0.5} />
-      <g transform={`rotate(${angle} ${cx} ${cx})`}>
-        {Array.from({ length: 60 }, (_, i) => {
-          const a = (i / 60) * 360
-          const [x1, y1] = polar(r, a)
-          const [x2, y2] = polar(r - (i % 5 === 0 ? 10 : 4), a)
-          return (
-            <g key={i} data-tick="ghati-aditi" data-idx={i}>
-              <line x1={cx + x1} y1={cx + y1} x2={cx + x2} y2={cx + y2}
-                stroke={i % 5 === 0 ? "#f6cf78" : "#7a5c1f"}
-                strokeWidth={i % 15 === 0 ? 1.5 : (i % 5 === 0 ? 1 : 0.4)} />
-              {i % 5 === 0 && (() => {
-                const [lx, ly] = polar(r - 18, a)
-                return (
-                  <text x={cx + lx} y={cx + ly} fontSize={9} fill="#d4a44c"
-                    textAnchor="middle" dominantBaseline="middle"
-                    transform={`rotate(${-angle} ${cx + lx} ${cx + ly})`}
-                    fontFamily="serif">
-                    {i}
-                  </text>
-                )
-              })()}
-            </g>
-          )
-        })}
-      </g>
-      {/* Apex marker triangle — the "60-ghaṭi apex" pointer */}
-      <polygon points={`${cx},${cx - r + 2} ${cx - 4},${cx - r - 5} ${cx + 4},${cx - r - 5}`}
-        fill="#f6cf78" />
-    </svg>
-  )
-}
-
-function RingMasa12({ size, angle, activeIdx }: { size: number; angle: number; activeIdx: number }) {
-  const cx = size / 2
-  const rOuter = size * 0.245
-  const rInner = size * 0.215
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0">
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0"
+         onMouseLeave={onLeave}>
       <g transform={`rotate(${angle} ${cx} ${cx})`}>
         {Array.from({ length: 12 }, (_, i) => {
           const a0 = (i / 12) * 360
@@ -631,26 +520,16 @@ function RingMasa12({ size, angle, activeIdx }: { size: number; angle: number; a
                         L ${cx + x1i} ${cx + y1i}
                         A ${rInner} ${rInner} 0 0 0 ${cx + x0i} ${cx + y0i} Z`
           const isActive = i === activeIdx
-          // Ṛtu coloring — 6 seasons, 2 months per ṛtu
           const ritu = Math.floor(i / 2)
-          const ritu_hue = [120, 60, 30, 0, 270, 210][ritu]   // vasanta..śiśira
+          const ritu_hue = [120, 60, 30, 0, 270, 210][ritu]
           return (
-            <g key={i} data-tick="masa" data-idx={i}>
+            <g key={i} data-tick="masa" data-idx={i}
+               onMouseEnter={() => onHover(masaNames[i], `${MASA_DEV[i]} · ${rituNames[ritu]}-ṛtu`)}>
               <path d={path}
-                fill={`hsl(${ritu_hue}, 40%, ${isActive ? 35 : 15}%)`}
+                fill={`hsl(${ritu_hue}, ${isActive ? 50 : 25}%, ${isActive ? 30 : 12}%)`}
                 stroke={isActive ? "#f6cf78" : "#3e2c10"}
-                strokeWidth={isActive ? 1.5 : 0.3} />
-              {(() => {
-                const aMid = (a0 + a1) / 2
-                const [lx, ly] = polar((rOuter + rInner) / 2, aMid)
-                return (
-                  <text x={cx + lx} y={cx + ly} fontSize={6} fill={isActive ? "#fff" : "#d4a44c"}
-                    textAnchor="middle" dominantBaseline="middle"
-                    transform={`rotate(${-angle} ${cx + lx} ${cx + ly})`}>
-                    {MASA_DEV[i]}
-                  </text>
-                )
-              })()}
+                strokeWidth={isActive ? 1 : 0.2}
+                style={{ cursor: "pointer" }} />
             </g>
           )
         })}
@@ -659,502 +538,116 @@ function RingMasa12({ size, angle, activeIdx }: { size: number; angle: number; a
   )
 }
 
-function RingVara7({
-  size, angle, activeIdx, lordGraha,
-}: { size: number; angle: number; activeIdx: number; lordGraha: string }) {
-  const cx = size / 2
-  const rOuter = size * 0.185
-  const rInner = size * 0.155
-  const planets = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"]
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0">
-      <g transform={`rotate(${angle} ${cx} ${cx})`}>
-        {planets.map((p, i) => {
-          const a0 = (i / 7) * 360
-          const a1 = ((i + 1) / 7) * 360
-          const [x0o, y0o] = polar(rOuter, a0)
-          const [x1o, y1o] = polar(rOuter, a1)
-          const [x0i, y0i] = polar(rInner, a0)
-          const [x1i, y1i] = polar(rInner, a1)
-          const path = `M ${cx + x0o} ${cx + y0o}
-                        A ${rOuter} ${rOuter} 0 0 1 ${cx + x1o} ${cx + y1o}
-                        L ${cx + x1i} ${cx + y1i}
-                        A ${rInner} ${rInner} 0 0 0 ${cx + x0i} ${cx + y0i} Z`
-          const isActive = i === activeIdx
-          const meta = PLANET_SYMBOL[p]
-          return (
-            <g key={p} data-tick="vara" data-idx={i}>
-              <path d={path} fill={isActive ? meta.color : "#1a0d04"} fillOpacity={isActive ? 0.85 : 1}
-                stroke={isActive ? "#f6cf78" : "#3e2c10"} strokeWidth={isActive ? 1.2 : 0.3} />
-              {(() => {
-                const aMid = (a0 + a1) / 2
-                const [lx, ly] = polar((rOuter + rInner) / 2, aMid)
-                return (
-                  <text x={cx + lx} y={cx + ly} fontSize={10} fill={isActive ? "#1a0d04" : meta.color}
-                    textAnchor="middle" dominantBaseline="middle"
-                    transform={`rotate(${-angle} ${cx + lx} ${cx + ly})`}>
-                    {meta.symbol}
-                  </text>
-                )
-              })()}
-            </g>
-          )
-        })}
-      </g>
-      <text x={cx} y={cx - rOuter - 6} fontSize={9} fill="#f6cf78" textAnchor="middle"
-        data-readout="vara-lord" fontFamily="serif">
-        {PLANET_SYMBOL[lordGraha]?.dev ?? lordGraha}-वार
-      </text>
-    </svg>
-  )
-}
-
-// ─── Subdials (small, off-center) ─────────────────────────────────────────────
-
-function Subdial({
-  size, cxFrac, cyFrac, rFrac, label, value, dev, angle, ticks,
-  fillHue = 45,
+function RingGhatiTicks({
+  size, angle, onHover, onLeave,
 }: {
-  size: number; cxFrac: number; cyFrac: number; rFrac: number
-  label: string; value: string; dev?: string; angle: number; ticks: number; fillHue?: number
+  size: number; angle: number
+  onHover: (label: string, sub?: string) => void; onLeave: () => void
 }) {
-  const cx = size * cxFrac
-  const cy = size * cyFrac
-  const r = size * rFrac
+  const cx = size / 2
+  const r = size * 0.26
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0"
-         style={{ pointerEvents: "none" }}>
-      <circle cx={cx} cy={cy} r={r}
-        fill={`hsl(${fillHue}, 30%, 8%)`}
-        stroke="#a04a0a" strokeWidth={0.8} />
-      <g transform={`rotate(${angle} ${cx} ${cy})`}>
-        {Array.from({ length: ticks }, (_, i) => {
-          const a = (i / ticks) * 360
-          const cosA = Math.cos(((a - 90) * Math.PI) / 180)
-          const sinA = Math.sin(((a - 90) * Math.PI) / 180)
-          const isMajor = i % Math.max(1, Math.floor(ticks / 6)) === 0
+         onMouseLeave={onLeave}
+         onMouseEnter={() => onHover("Ghaṭi · Aditi", "60·60·6 cascade")}>
+      <circle cx={cx} cy={cx} r={r} fill="none" stroke="#5c4824" strokeWidth={0.4} />
+      <g transform={`rotate(${angle} ${cx} ${cx})`}>
+        {Array.from({ length: 60 }, (_, i) => {
+          const a = (i / 60) * 360
+          const [x1, y1] = polar(r, a)
+          const [x2, y2] = polar(r - (i % 5 === 0 ? 6 : 2.5), a)
           return (
-            <line key={i}
-              x1={cx + r * 0.92 * cosA} y1={cy + r * 0.92 * sinA}
-              x2={cx + r * (isMajor ? 0.78 : 0.84) * cosA}
-              y2={cy + r * (isMajor ? 0.78 : 0.84) * sinA}
-              stroke={isMajor ? "#d4a44c" : "#5c4824"} strokeWidth={isMajor ? 0.6 : 0.3} />
+            <line key={i} data-tick="ghati-aditi" data-idx={i}
+              x1={cx + x1} y1={cx + y1} x2={cx + x2} y2={cx + y2}
+              stroke={i % 15 === 0 ? "#f6cf78" : i % 5 === 0 ? "#a04a0a" : "#3e2c10"}
+              strokeWidth={i % 15 === 0 ? 1.2 : i % 5 === 0 ? 0.8 : 0.3} />
           )
         })}
-        {/* Apex needle pointing to current segment (since the ring rotates) */}
-        <line x1={cx} y1={cy} x2={cx} y2={cy - r * 0.7}
-          stroke="#f6cf78" strokeWidth={1.2} strokeLinecap="round" />
-        <circle cx={cx} cy={cy} r={2} fill="#f6cf78" />
       </g>
-      <text x={cx} y={cy - r - 4} fontSize={7} fill="#7a5c1f" textAnchor="middle"
-        letterSpacing="0.15em" fontFamily="serif">{label}</text>
-      <text x={cx} y={cy + r + 12} fontSize={8} fill="#d4a44c" textAnchor="middle">
-        {dev ?? value}
-      </text>
+      {/* apex pointer */}
+      <polygon points={`${cx},${cx - r + 2} ${cx - 3},${cx - r - 4} ${cx + 3},${cx - r - 4}`} fill="#f6cf78" />
     </svg>
   )
 }
 
-function SubdialYoga27({
-  size, angle, name, dev,
-}: { size: number; angle: number; name: string; dev: string }) {
-  return (
-    <Subdial size={size} cxFrac={0.27} cyFrac={0.32} rFrac={0.08}
-      label="YOGA" value={name} dev={dev} angle={angle} ticks={27} fillHue={280} />
-  )
-}
-
-function SubdialKarana60({
-  size, angle, name, dev,
-}: { size: number; angle: number; name: string; dev: string }) {
-  return (
-    <Subdial size={size} cxFrac={0.73} cyFrac={0.32} rFrac={0.08}
-      label="KARAṆA" value={name} dev={dev} angle={angle} ticks={30} fillHue={200} />
-  )
-}
-
-function SubdialGhatiDiti20({
-  size, angle, ghIdx, vIdx,
-}: { size: number; angle: number; ghIdx: number; vIdx: number }) {
-  return (
-    <Subdial size={size} cxFrac={0.5} cyFrac={0.78} rFrac={0.085}
-      label="DITI · घटिका" value={`${ghIdx}/${vIdx}`} dev={`${toNagari(ghIdx)} · ${toNagari(vIdx)}`}
-      angle={angle} ticks={20} fillHue={15} />
-  )
-}
-
-// ─── Ecliptic Sun/Moon needles ────────────────────────────────────────────────
-
-function EclipticNeedles({
-  size, sunDeg, moonDeg, rahuDeg, ketuDeg,
-}: { size: number; sunDeg: number; moonDeg: number; rahuDeg: number; ketuDeg: number }) {
+function EclipticGlyphs({ size, sunDeg, moonDeg }: { size: number; sunDeg: number; moonDeg: number }) {
   const cx = size / 2
-  const r = size * 0.395
-  const rNode = size * 0.355   // nodes ride slightly inside Sun/Moon
+  const r = size * 0.4
+  const sunPos = polar(r, -sunDeg)
+  const moonPos = polar(r, -moonDeg)
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0"
          style={{ pointerEvents: "none" }}>
-      {/* Sun needle */}
-      <g transform={`rotate(${-sunDeg} ${cx} ${cx})`}>
-        <line x1={cx} y1={cx} x2={cx} y2={cx - r}
-          stroke="#f6cf78" strokeWidth={1.2} strokeOpacity={0.9} />
-        <circle cx={cx} cy={cx - r - 4} r={5} fill="#f6cf78" stroke="#a04a0a" strokeWidth={0.5} />
-        <text x={cx} y={cx - r - 2} fontSize={7} fill="#1a0d04" textAnchor="middle" dominantBaseline="middle">☉</text>
+      <g transform={`translate(${cx + sunPos[0]} ${cx + sunPos[1]})`}>
+        <circle r={7} fill="#f6cf78" stroke="#a04a0a" strokeWidth={0.6}
+          style={{ filter: "drop-shadow(0 0 3px #cf6a1e)" }} />
+        <text fontSize={9} fill="#1a0d04" textAnchor="middle" dominantBaseline="central">☉</text>
       </g>
-      {/* Moon needle */}
-      <g transform={`rotate(${-moonDeg} ${cx} ${cx})`}>
-        <line x1={cx} y1={cx} x2={cx} y2={cx - r}
-          stroke="#e8e8f5" strokeWidth={1.2} strokeOpacity={0.85} />
-        <circle cx={cx} cy={cx - r - 4} r={5} fill="#e8e8f5" stroke="#7a5c8f" strokeWidth={0.5} />
-        <text x={cx} y={cx - r - 2} fontSize={7} fill="#1a0d04" textAnchor="middle" dominantBaseline="middle">☽</text>
-      </g>
-      {/* Rāhu node — north node, ascending */}
-      <g transform={`rotate(${-rahuDeg} ${cx} ${cx})`}>
-        <line x1={cx} y1={cx} x2={cx} y2={cx - rNode}
-          stroke="#4a3a8f" strokeWidth={1} strokeOpacity={0.75} strokeDasharray="3 2" />
-        <circle cx={cx} cy={cx - rNode - 3} r={4} fill="#4a3a8f" stroke="#1a0d04" strokeWidth={0.5} />
-        <text x={cx} y={cx - rNode - 1} fontSize={6} fill="#fff" textAnchor="middle" dominantBaseline="middle">☊</text>
-      </g>
-      {/* Ketu node — south node, descending (axis is 180° opposite Rāhu) */}
-      <g transform={`rotate(${-ketuDeg} ${cx} ${cx})`}>
-        <line x1={cx} y1={cx} x2={cx} y2={cx - rNode}
-          stroke="#8f3a4a" strokeWidth={1} strokeOpacity={0.75} strokeDasharray="3 2" />
-        <circle cx={cx} cy={cx - rNode - 3} r={4} fill="#8f3a4a" stroke="#1a0d04" strokeWidth={0.5} />
-        <text x={cx} y={cx - rNode - 1} fontSize={6} fill="#fff" textAnchor="middle" dominantBaseline="middle">☋</text>
+      <g transform={`translate(${cx + moonPos[0]} ${cx + moonPos[1]})`}>
+        <circle r={6.5} fill="#e8e8f5" stroke="#7a5c8f" strokeWidth={0.6}
+          style={{ filter: "drop-shadow(0 0 3px #e8e8f5)" }} />
+        <text fontSize={8} fill="#1a0d04" textAnchor="middle" dominantBaseline="central">☽</text>
       </g>
     </svg>
   )
 }
 
-// ─── Trimūrti hour-hands (3 phase-shifted needles) ─────────────────────────
-
-function TrimurtiHands({
-  size, brahmaDeg, vishnuDeg, maheshDeg,
-}: { size: number; brahmaDeg: number; vishnuDeg: number; maheshDeg: number }) {
+function PakshaMoonChip({
+  size, pakshaIdx, tithiInPaksha,
+}: { size: number; pakshaIdx: number; tithiInPaksha: number }) {
   const cx = size / 2
-  const r = size / 2
+  const y = size * 0.06   // small chip above center
+  const isShukla = pakshaIdx === 1
+  // Crescent shape: simple half-disc rotation based on tithiInPaksha
+  const phase = tithiInPaksha / 15   // 0=new, 1=full
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0"
          style={{ pointerEvents: "none" }}>
-      {/* Brahmā — longest, gold */}
-      <g transform={`rotate(${brahmaDeg} ${cx} ${cx})`}>
-        <line x1={cx} y1={cx + 12} x2={cx} y2={cx - r * 0.27}
-          stroke="#f6cf78" strokeWidth={3} strokeLinecap="round" />
-        <text x={cx} y={cx - r * 0.27 - 6} fontSize={9} fill="#f6cf78" textAnchor="middle" fontFamily="serif">ब्रह्मा</text>
-      </g>
-      {/* Viṣṇu — medium, indigo */}
-      <g transform={`rotate(${vishnuDeg} ${cx} ${cx})`}>
-        <line x1={cx} y1={cx + 10} x2={cx} y2={cx - r * 0.22}
-          stroke="#7a5c8f" strokeWidth={2.5} strokeLinecap="round" />
-        <text x={cx} y={cx - r * 0.22 - 6} fontSize={8} fill="#7a5c8f" textAnchor="middle" fontFamily="serif">विष्णु</text>
-      </g>
-      {/* Maheśa — shortest, ember */}
-      <g transform={`rotate(${maheshDeg} ${cx} ${cx})`}>
-        <line x1={cx} y1={cx + 8} x2={cx} y2={cx - r * 0.18}
-          stroke="#cf6a1e" strokeWidth={2} strokeLinecap="round" />
-        <text x={cx} y={cx - r * 0.18 - 6} fontSize={8} fill="#cf6a1e" textAnchor="middle" fontFamily="serif">महेश</text>
-      </g>
-      {/* Center hub */}
-      <circle cx={cx} cy={cx} r={5} fill="#1a0d04" stroke="#f6cf78" strokeWidth={1.2} />
-    </svg>
-  )
-}
-
-// ─── Sapta-mukha ring (7 directional dots) ────────────────────────────────
-
-function SaptaMukhaRing({ size }: { size: number }) {
-  const cx = size / 2
-  const r = size * 0.135
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0"
-         style={{ pointerEvents: "none" }}>
-      {MUKHA_DOTS.map((m, i) => {
-        const a = (i / 7) * 360
-        const [x, y] = polar(r, a)
-        return (
-          <g key={m.id}>
-            <circle cx={cx + x} cy={cx + y} r={3} fill={m.color} stroke="#1a0d04" strokeWidth={0.5} />
-            <text x={cx + x} y={cx + y - 7} fontSize={7} textAnchor="middle">{m.emoji}</text>
-          </g>
-        )
-      })}
-    </svg>
-  )
-}
-
-// ─── Central OM seal + heartbeat pulse ────────────────────────────────────
-
-function CentralOmSeal({ size, pranaIdx }: { size: number; pranaIdx: number }) {
-  const cx = size / 2
-  const r = size * 0.06
-  const pulseScale = 1 + (pranaIdx % 6) * 0.005   // very subtle heartbeat
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0"
-         style={{ pointerEvents: "none" }}>
-      <defs>
-        <radialGradient id="om-glow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%"  stopColor="#cf6a1e" stopOpacity="0.9" />
-          <stop offset="60%" stopColor="#1a0d04" stopOpacity="1" />
-          <stop offset="100%" stopColor="#050300" stopOpacity="1" />
-        </radialGradient>
-      </defs>
-      <g transform={`translate(${cx} ${cx}) scale(${pulseScale})`}>
-        <circle r={r * 1.5} fill="url(#om-glow)" opacity={0.6} />
-        <circle r={r} fill="#1a0d04" stroke="#f6cf78" strokeWidth={1.5} />
-        <text fontSize={r * 1.3} fill="#f6cf78" textAnchor="middle" dominantBaseline="central"
-          fontFamily="serif" style={{ filter: "drop-shadow(0 0 6px #cf6a1e)" }}>
-          ॐ
+      <g transform={`translate(${cx} ${y + 24})`}>
+        <circle r={9} fill="#0a0502" stroke="#5c4824" strokeWidth={0.5} />
+        {/* simple lit area */}
+        <path
+          d={isShukla
+            ? `M 0,-9 A 9,9 0 0 1 0,9 A ${9 * (1 - 2 * phase)},9 0 0 ${phase < 0.5 ? 0 : 1} 0,-9 Z`
+            : `M 0,-9 A 9,9 0 0 0 0,9 A ${9 * (2 * phase - 1)},9 0 0 ${phase < 0.5 ? 1 : 0} 0,-9 Z`
+          }
+          fill="#f6cf78" opacity={0.9} />
+        <text y={20} fontSize={7} fill={isShukla ? "#f6cf78" : "#cf6a1e"} textAnchor="middle"
+          fontFamily="serif" data-readout="paksha">
+          {isShukla ? "शुक्ल" : "कृष्ण"}-पक्ष
         </text>
       </g>
     </svg>
   )
 }
 
-// ─── Specular sheen overlay ────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// ◈ Hands
+// ════════════════════════════════════════════════════════════════════════════
 
-function SpecularSheen({ size }: { size: number }) {
+function TrimurtiCompositeHand({
+  size, angleDeg, phase,
+}: { size: number; angleDeg: number; phase: 0 | 1 | 2 }) {
+  const cx = size / 2
+  const r = size / 2
+  const colors = ["#f6cf78", "#7a5c8f", "#cf6a1e"]   // Brahmā · Viṣṇu · Maheśa
+  const labels = ["ब्रह्मा", "विष्णु", "महेश"]
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0"
-         style={{ pointerEvents: "none", mixBlendMode: "screen" }}>
-      <defs>
-        <radialGradient id="sheen" cx="35%" cy="25%" r="50%">
-          <stop offset="0%" stopColor="#fff" stopOpacity="0.18" />
-          <stop offset="40%" stopColor="#f6cf78" stopOpacity="0.04" />
-          <stop offset="100%" stopColor="#000" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      <circle cx={size / 2} cy={size / 2} r={size * 0.49} fill="url(#sheen)" />
-    </svg>
-  )
-}
-
-// ─── Digital readouts (positioned around the dial) ────────────────────────
-
-function DigitalReadouts({
-  stamp, meridian, kInt, kDec, activeMeridianId,
-}: { stamp: SubstrateStamp; meridian: any; kInt: string; kDec: string; activeMeridianId: string }) {
-  const year = stamp.year_layer
-  const ci = stamp.input_civil
-  const isAM = ci.hour < 12
-  const hh = String(ci.hour).padStart(2, "0")
-  const mm = String(ci.minute).padStart(2, "0")
-  const ss = String(Math.floor(ci.second)).padStart(2, "0")
-  const monthShort = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][ci.month - 1]
-  const ymdDate = `${String(ci.day).padStart(2,"0")} ${monthShort} ${ci.gregorian_year}`
-  const dowShort = ["SUN","MON","TUE","WED","THU","FRI","SAT"][stamp.vara_layer.vara_index]
-  return (
-    <>
-      {/* Top-left: meridian + K readout */}
-      <div className="absolute top-3 left-4 text-xs text-gold-500 font-display tracking-wider">
-        <div className="text-[9px] text-gold-700">MERIDIAN</div>
-        <div className="text-gold-200 text-sm">{meridian.label_en}</div>
-        <div className="inscription text-[10px] text-gold-400">{meridian.label_hi}</div>
-        <div className="text-[9px] text-gold-700 mt-1">lon · {meridian.lon_deg.toFixed(4)}°</div>
-        <div className="text-[9px] text-gold-700">LMT · {meridian.lmt_offset_h >= 0 ? "+" : ""}{meridian.lmt_offset_h.toFixed(3)}h</div>
-      </div>
-
-      {/* Top-center: Western civil readouts — date · day-of-week · AM/PM */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 flex gap-2">
-        <div className="px-2 py-1 rounded-sm bg-ink-900/80 border border-gold-700/50 text-center" data-readout="date">
-          <div className="text-[8px] text-gold-700 tracking-wider">DATE</div>
-          <div className="text-[10px] text-gold-200 font-mono tabular-nums">{ymdDate}</div>
-        </div>
-        <div className="px-2 py-1 rounded-sm bg-ink-900/80 border border-gold-700/50 text-center" data-readout="dow">
-          <div className="text-[8px] text-gold-700 tracking-wider">DAY</div>
-          <div className="text-[10px] text-gold-200 font-mono">{dowShort}</div>
-        </div>
-        <div className={`px-2 py-1 rounded-sm border text-center ${isAM ? "bg-amber-ember/20 border-amber-300/50 text-amber-100" : "bg-ink-900/80 border-gold-700/50 text-gold-200"}`} data-readout="ampm">
-          <div className="text-[8px] text-gold-700 tracking-wider">{isAM ? "ANTE M." : "POST M."}</div>
-          <div className="text-[10px] font-mono font-bold">{isAM ? "AM" : "PM"}</div>
-        </div>
-      </div>
-
-      {/* Top-right: Kali / Vikrama / Śaka */}
-      <div className="absolute top-3 right-4 text-xs text-gold-500 font-display tracking-wider text-right">
-        <div className="text-[9px] text-gold-700">YEARS</div>
-        <div className="text-gold-200 text-sm" data-readout="kali-year">
-          कलि {year.kali_year_current.toLocaleString("en-IN")}
-        </div>
-        <div className="text-[10px] text-gold-400">{year.samvatsara.name} · #{year.samvatsara.index + 1}/60</div>
-        <div className="text-[9px] text-gold-700">विक्रम {toNagari(year.vikrama_samvat)} · शक {toNagari(year.shaka_samvat)}</div>
-      </div>
-
-      {/* Bottom-left: bipolar discipline tag */}
-      <div className="absolute bottom-3 left-4 text-[9px] text-gold-700 font-display tracking-wider max-w-[210px] leading-snug">
-        <div className="text-gold-500">APEX-v5 BIPOLAR</div>
-        <div>Aditi · R*  →  60·60·6 ghaṭi</div>
-        <div>Diti · (3)  →  20·20·2 ghaṭi</div>
-        <div>π_(3)/π = 1/3 · Pisano-of-Ideal</div>
-      </div>
-
-      {/* Bottom-center: live civil time (HH:MM:SS) — Western digital */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-center" data-readout="civil-time">
-        <div className="text-[8px] text-gold-700 tracking-[0.3em]">CIVIL · IST (UTC+{ci.tz_h})</div>
-        <div className="text-gold-100 text-lg font-mono tabular-nums leading-none mt-0.5">
-          {hh}<span className="text-gold-500">:</span>{mm}<span className="text-gold-500">:</span>{ss}
-        </div>
-      </div>
-
-      {/* Bottom-right: K digital readout (6-decimal Kāmākhyā Julian day) */}
-      <div className="absolute bottom-3 right-4 text-xs text-gold-500 font-display tracking-wider text-right font-mono">
-        <div className="text-[9px] text-gold-700">K · KĀMĀKHYĀ JD</div>
-        <div className="text-gold-200 text-base tabular-nums" data-readout="k">
-          {kInt}<span className="text-gold-500">.{kDec}</span>
-        </div>
-        <div className="text-[9px] text-gold-700">{toNagari(kInt)}.{toNagari(kDec)}</div>
-      </div>
-    </>
-  )
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-// ◈ NEW sub-components: Western 12-hr bezel · Rāśi 12 · Horā 24 · Western hands
-// ════════════════════════════════════════════════════════════════════════════
-
-const RASHI_NAMES = [
-  "Meṣa", "Vṛṣabha", "Mithuna", "Karka", "Siṃha", "Kanyā",
-  "Tulā", "Vṛścika", "Dhanu", "Makara", "Kumbha", "Mīna",
-]
-const RASHI_GLYPHS = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
-
-/** Outermost Western bezel: 12 hour marks + 60 minute ticks. */
-function RingWestern12Hour({ size }: { size: number }) {
-  const cx = size / 2
-  const r = size * 0.485
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0">
-      {/* 60 minute ticks */}
-      {Array.from({ length: 60 }, (_, i) => {
-        const a = (i / 60) * 360
-        const [x1, y1] = polar(r, a)
-        const [x2, y2] = polar(r - (i % 5 === 0 ? 7 : 3), a)
-        return (
-          <line key={i} data-tick="western-minute" data-idx={i}
-            x1={cx + x1} y1={cx + y1} x2={cx + x2} y2={cx + y2}
-            stroke={i % 5 === 0 ? "#d4a44c" : "#5c4824"}
-            strokeWidth={i % 5 === 0 ? 1 : 0.4} />
-        )
-      })}
-      {/* 12 hour numerals — Roman + Arabic */}
-      {Array.from({ length: 12 }, (_, i) => {
-        const hour = i === 0 ? 12 : i
-        const a = (i / 12) * 360
-        const [lx, ly] = polar(r - 14, a)
-        return (
-          <g key={i} data-tick="western-hour" data-idx={i}>
-            <text x={cx + lx} y={cx + ly} fontSize={8} fill="#d4a44c"
-              textAnchor="middle" dominantBaseline="middle" fontFamily="serif">
-              {hour}
-            </text>
-          </g>
-        )
-      })}
-    </svg>
-  )
-}
-
-/** 12-rāśi zodiac ring with glyphs + Sanskrit names. */
-function RingRashi12({
-  size, angle, activeIdx,
-}: { size: number; angle: number; activeIdx: number }) {
-  const cx = size / 2
-  const rOuter = size * 0.448
-  const rInner = size * 0.422
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0">
-      <g transform={`rotate(${angle} ${cx} ${cx})`}>
-        {Array.from({ length: 12 }, (_, i) => {
-          const a0 = (i / 12) * 360
-          const a1 = ((i + 1) / 12) * 360
-          const [x0o, y0o] = polar(rOuter, a0)
-          const [x1o, y1o] = polar(rOuter, a1)
-          const [x0i, y0i] = polar(rInner, a0)
-          const [x1i, y1i] = polar(rInner, a1)
-          const path = `M ${cx + x0o} ${cx + y0o}
-                        A ${rOuter} ${rOuter} 0 0 1 ${cx + x1o} ${cx + y1o}
-                        L ${cx + x1i} ${cx + y1i}
-                        A ${rInner} ${rInner} 0 0 0 ${cx + x0i} ${cx + y0i} Z`
-          const isActive = i === activeIdx
-          // Element color: Fire/Earth/Air/Water cycle
-          const element_hue = [0, 60, 200, 280][i % 4]
-          return (
-            <g key={i} data-tick="rashi" data-idx={i}>
-              <path d={path}
-                fill={`hsl(${element_hue}, 35%, ${isActive ? 30 : 12}%)`}
-                stroke={isActive ? "#f6cf78" : "#3e2c10"}
-                strokeWidth={isActive ? 1.2 : 0.3} />
-              {(() => {
-                const aMid = (a0 + a1) / 2
-                const [lx, ly] = polar((rOuter + rInner) / 2, aMid)
-                return (
-                  <text x={cx + lx} y={cx + ly} fontSize={9} fill={isActive ? "#fff" : "#d4a44c"}
-                    textAnchor="middle" dominantBaseline="middle"
-                    transform={`rotate(${-angle} ${cx + lx} ${cx + ly})`}>
-                    {RASHI_GLYPHS[i]}
-                  </text>
-                )
-              })()}
-            </g>
-          )
-        })}
+         style={{ pointerEvents: "none" }}>
+      <g transform={`rotate(${angleDeg} ${cx} ${cx})`} data-needle="trimurti-composite">
+        <line x1={cx} y1={cx + 14} x2={cx} y2={cx - r * 0.20}
+          stroke={colors[phase]} strokeWidth={3.5} strokeLinecap="round"
+          style={{ filter: "drop-shadow(0 0 3px currentColor)", color: colors[phase] }} />
       </g>
-      <text x={cx} y={cx - rOuter - 4} fontSize={8} fill="#f6cf78" textAnchor="middle"
-        fontFamily="serif" data-readout="rashi-active">
-        {RASHI_NAMES[activeIdx]}-rāśi
-      </text>
-    </svg>
-  )
-}
-
-/** 24-horā (planetary-hour) ring. Highlights the segment for the current civil hour. */
-function RingHora24({
-  size, angle, civilHours, varaIdx,
-}: { size: number; angle: number; civilHours: number; varaIdx: number }) {
-  const cx = size / 2
-  const rOuter = size * 0.395
-  const rInner = size * 0.373
-  // Chaldean planet order, day-lord at index 0
-  const CHALDEAN = ["Sun","Venus","Mercury","Moon","Saturn","Jupiter","Mars"] as const
-  // Map vāra (0=Sun, 1=Mon, …, 6=Sat) → its lord planet's index in the Chaldean cycle
-  const DAY_LORD = ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn"]
-  const startPlanet = DAY_LORD[varaIdx]
-  const startIdx = CHALDEAN.indexOf(startPlanet as any)
-  const horaIdxNow = Math.floor(civilHours) % 24
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0">
-      <g transform={`rotate(${angle} ${cx} ${cx})`}>
-        {Array.from({ length: 24 }, (_, i) => {
-          const a0 = (i / 24) * 360
-          const a1 = ((i + 1) / 24) * 360
-          const [x0o, y0o] = polar(rOuter, a0)
-          const [x1o, y1o] = polar(rOuter, a1)
-          const [x0i, y0i] = polar(rInner, a0)
-          const [x1i, y1i] = polar(rInner, a1)
-          const path = `M ${cx + x0o} ${cx + y0o}
-                        A ${rOuter} ${rOuter} 0 0 1 ${cx + x1o} ${cx + y1o}
-                        L ${cx + x1i} ${cx + y1i}
-                        A ${rInner} ${rInner} 0 0 0 ${cx + x0i} ${cx + y0i} Z`
-          const planet = CHALDEAN[(startIdx + i) % 7]
-          const meta = PLANET_SYMBOL[planet]
-          const isActive = i === horaIdxNow
+      {/* Triple-cap at hub — small dots showing 3 phase colors */}
+      <g>
+        {[0, 120, 240].map((rot, i) => {
+          const [x, y] = polar(7, rot)
           return (
-            <g key={i} data-tick="hora" data-idx={i}>
-              <path d={path} fill={isActive ? meta.color : "#0a0502"}
-                fillOpacity={isActive ? 0.85 : 1}
-                stroke={isActive ? "#f6cf78" : "#3e2c10"}
-                strokeWidth={isActive ? 1.2 : 0.3} />
-              {(() => {
-                const aMid = (a0 + a1) / 2
-                const [lx, ly] = polar((rOuter + rInner) / 2, aMid)
-                return (
-                  <text x={cx + lx} y={cx + ly} fontSize={6} fill={isActive ? "#1a0d04" : meta.color}
-                    textAnchor="middle" dominantBaseline="middle"
-                    transform={`rotate(${-angle} ${cx + lx} ${cx + ly})`}>
-                    {meta.symbol}
-                  </text>
-                )
-              })()}
-            </g>
+            <circle key={i} cx={cx + x} cy={cx + y} r={2.2}
+              fill={colors[i]} opacity={i === phase ? 1 : 0.35}
+              stroke={i === phase ? "#fff" : "none"} strokeWidth={0.5} />
           )
         })}
       </g>
@@ -1162,8 +655,7 @@ function RingHora24({
   )
 }
 
-/** Western H/M/S hands — classic analog watch needles. */
-function WesternHands({
+function WesternHandsMinimal({
   size, hourDeg, minDeg, secDeg,
 }: { size: number; hourDeg: number; minDeg: number; secDeg: number }) {
   const cx = size / 2
@@ -1171,27 +663,235 @@ function WesternHands({
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0"
          style={{ pointerEvents: "none" }}>
-      {/* Hour hand — thickest, gold */}
+      {/* Hour — thickest lance, gold */}
       <g transform={`rotate(${hourDeg} ${cx} ${cx})`} data-needle="western-hour">
-        <line x1={cx} y1={cx + 18} x2={cx} y2={cx - r * 0.30}
-          stroke="#f6cf78" strokeWidth={4.5} strokeLinecap="round"
+        <line x1={cx} y1={cx + 22} x2={cx} y2={cx - r * 0.34}
+          stroke="#f6cf78" strokeWidth={5} strokeLinecap="round"
           style={{ filter: "drop-shadow(0 0 2px #cf6a1e)" }} />
       </g>
-      {/* Minute hand — thinner, brighter gold */}
+      {/* Minute — thinner, brighter */}
       <g transform={`rotate(${minDeg} ${cx} ${cx})`} data-needle="western-minute">
-        <line x1={cx} y1={cx + 16} x2={cx} y2={cx - r * 0.41}
+        <line x1={cx} y1={cx + 18} x2={cx} y2={cx - r * 0.45}
           stroke="#fef4d8" strokeWidth={3} strokeLinecap="round"
           style={{ filter: "drop-shadow(0 0 1.5px #f6cf78)" }} />
       </g>
-      {/* Second hand — thinnest, ember-red (signature touch) */}
+      {/* Second — hairline ember-red */}
       <g transform={`rotate(${secDeg} ${cx} ${cx})`} data-needle="western-second">
-        <line x1={cx} y1={cx + 22} x2={cx} y2={cx - r * 0.45}
+        <line x1={cx} y1={cx + 26} x2={cx} y2={cx - r * 0.46}
           stroke="#cf3a1e" strokeWidth={1.4} strokeLinecap="round" />
         <circle cx={cx} cy={cx - r * 0.38} r={3} fill="#cf3a1e" stroke="#1a0d04" strokeWidth={0.5} />
       </g>
-      {/* Central pin cap */}
-      <circle cx={cx} cy={cx} r={7} fill="#1a0d04" stroke="#f6cf78" strokeWidth={1.5} />
-      <circle cx={cx} cy={cx} r={2} fill="#cf3a1e" />
     </svg>
+  )
+}
+
+function CenterSeal({
+  size, pranaIdx, varaLordGraha, onClick,
+}: { size: number; pranaIdx: number; varaLordGraha: string; onClick: () => void }) {
+  const cx = size / 2
+  const r = size * 0.075
+  const pulseScale = 1 + (pranaIdx % 6) * 0.008
+  const lord = PLANET_SYMBOL[varaLordGraha]
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0">
+      <defs>
+        <radialGradient id="om-seal" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#cf6a1e" stopOpacity="0.9" />
+          <stop offset="55%" stopColor="#1a0d04" stopOpacity="1" />
+          <stop offset="100%" stopColor="#050300" stopOpacity="1" />
+        </radialGradient>
+      </defs>
+      {/* Clickable hit area — full seal */}
+      <g transform={`translate(${cx} ${cx})`} style={{ cursor: "pointer" }} onClick={onClick}
+         role="button" aria-label="Open Saptamukhi panel">
+        <g transform={`scale(${pulseScale})`}>
+          <circle r={r * 1.6} fill="url(#om-seal)" opacity={0.55} />
+          <circle r={r} fill="#1a0d04" stroke="#f6cf78" strokeWidth={1.5} />
+          <text fontSize={r * 1.35} fill="#f6cf78" textAnchor="middle" dominantBaseline="central"
+            fontFamily="serif" style={{ filter: "drop-shadow(0 0 6px #cf6a1e)" }}>
+            ॐ
+          </text>
+        </g>
+        {/* vāra lord planet glyph orbiting just outside the seal */}
+        {lord && (
+          <g transform={`translate(0 ${-r - 8})`}>
+            <circle r={5} fill={lord.color} stroke="#1a0d04" strokeWidth={0.5} />
+            <text fontSize={7} fill="#1a0d04" textAnchor="middle" dominantBaseline="central">
+              {lord.symbol}
+            </text>
+          </g>
+        )}
+        {/* affordance hint — small "+" indicating clickable */}
+        <text y={r + 14} fontSize={8} fill="#7a5c1f" textAnchor="middle"
+          fontFamily="'Cinzel', serif" letterSpacing="0.2em">
+          ⊕ TAP
+        </text>
+      </g>
+    </svg>
+  )
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ◈ SaptamukhiPanel — slide-in drawer with the 35 demoted complications
+// ════════════════════════════════════════════════════════════════════════════
+
+function SaptamukhiPanel({
+  open, onClose, stamp, meridian, cell,
+}: {
+  open: boolean
+  onClose: () => void
+  stamp: SubstrateStamp
+  meridian: any
+  cell: any
+}) {
+  const year = stamp.year_layer
+  const month = stamp.month_layer
+  const tithi = stamp.tithi_layer
+  const vara = stamp.vara_layer
+  const naks = cell.nakshatra
+  const yoga = cell.yoga
+  const karana = cell.karana
+  const av = cell.ashtakavarga
+
+  // ESC closes
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [open, onClose])
+
+  if (!open) return null
+
+  return (
+    <div
+      data-component="saptamukhi-panel"
+      className="fixed inset-0 z-50 flex"
+      style={{ background: "rgba(5,3,0,0.7)", backdropFilter: "blur(4px)" }}
+      onClick={onClose}
+    >
+      <div
+        className="ml-auto h-full w-full sm:w-[420px] bg-ink-900 border-l border-gold-700/50 overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+      >
+        <header className="sticky top-0 z-10 bg-ink-900/95 backdrop-blur px-5 py-4 border-b border-gold-700/40 flex items-baseline justify-between">
+          <h3 className="font-display text-gold-200 tracking-[0.25em] text-sm">
+            🔱 सप्तमुखी · SAPTAMUKHI
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gold-500 hover:text-gold-200 text-xl leading-none"
+            aria-label="Close panel"
+          >×</button>
+        </header>
+
+        <div className="px-5 py-4 space-y-4 text-gold-200">
+          <PanelGroup title="समय · TIME">
+            <PanelKV k="Civil" v={`${String(stamp.input_civil.hour).padStart(2,"0")}:${String(stamp.input_civil.minute).padStart(2,"0")}:${String(Math.floor(stamp.input_civil.second)).padStart(2,"0")} (UTC+${stamp.input_civil.tz_h})`} />
+            <PanelKV k="Date" v={`${stamp.input_civil.gregorian_year}-${String(stamp.input_civil.month).padStart(2,"0")}-${String(stamp.input_civil.day).padStart(2,"0")}`} />
+            <PanelKV k="Day" v={vara.vara_name + " · " + vara.vara_devanagari + " (" + vara.vara_lord_graha + ")"} />
+            <PanelKV k="Ghaṭi-Aditi" v={`${stamp.day_subdivision_aditi.ghati_index} / ${stamp.day_subdivision_aditi.vighati_index} / ${stamp.day_subdivision_aditi.prana_index}`} sub="60·60·6 cascade" />
+            <PanelKV k="Ghaṭi-Diti" v={`${stamp.day_subdivision_diti.ghati_index} / ${stamp.day_subdivision_diti.vighati_index} / ${stamp.day_subdivision_diti.prana_index}`} sub="20·20·2 (compressed pole)" />
+            <PanelKV k="Muhūrta" v={`${stamp.day_subdivision_aditi.muhurta_index} / 30`} />
+            <PanelKV k="K · Kāmākhyā JD" v={stamp.kali_civil_days_at_kamakhya.toFixed(6)} mono />
+          </PanelGroup>
+
+          <PanelGroup title="वर्ष · CYCLES">
+            <PanelKV k="Saṃvatsara" v={`${year.samvatsara.name} · #${year.samvatsara.index + 1}/60`} sub="60-yr Bṛhaspati-cakra" />
+            <PanelKV k="Kali year" v={year.kali_year_current.toLocaleString("en-IN")} />
+            <PanelKV k="Vikrama" v={year.vikrama_samvat.toLocaleString()} />
+            <PanelKV k="Śaka" v={year.shaka_samvat.toLocaleString()} />
+            <PanelKV k="Māsa" v={`${month.masa_name} · ${month.masa_devanagari}`} sub={`#${month.masa_index}/12 · सूर्य राशि #${month.sun_sign_index}`} />
+            <PanelKV k="Rāśi (Sun)" v={`${RASHI_NAMES[(month.sun_sign_index - 1) % 12]} ${RASHI_GLYPHS[(month.sun_sign_index - 1) % 12]}`} />
+          </PanelGroup>
+
+          <PanelGroup title="आकाश · SKY">
+            <PanelKV k="Nakṣatra" v={`${naks.nakshatra_name} · ${naks.nakshatra_devanagari}`} sub={`पाद ${naks.pada}/4 · देवता ${naks.nakshatra_deity} · विंशोत्तरी ${naks.nakshatra_lord}`} />
+            <PanelKV k="Tithi" v={`${tithi.tithi_name}`} sub={`${tithi.paksha_devanagari}-पक्ष · #${tithi.tithi_index}/30 · चन्द्र−सूर्य ${tithi.moon_minus_sun_deg.toFixed(2)}°`} />
+            <PanelKV k="Yoga" v={`${yoga.yoga_name} · ${yoga.yoga_devanagari}`} sub={`#${yoga.yoga_index}/27 · (सूर्य+चन्द्र) ${yoga.sun_plus_moon_lon_deg.toFixed(2)}°`} />
+            <PanelKV k="Karaṇa" v={`${karana.karana_name} · ${karana.karana_devanagari}`} sub={`#${karana.karana_index}/60${karana.is_movable ? " · चर चक्र " + karana.movable_cycle_number + "/8" : " · स्थिर"}`} />
+            <PanelKV k="Sun longitude" v={`${month.sun_sidereal_lon_deg.toFixed(4)}°`} mono />
+            <PanelKV k="Moon longitude" v={`${naks.moon_sidereal_lon_deg.toFixed(4)}°`} mono />
+          </PanelGroup>
+
+          <PanelGroup title="स्थान · MERIDIAN">
+            <PanelKV k="Active" v={meridian.label_en} sub={meridian.label_hi} />
+            <PanelKV k="Longitude" v={`${meridian.lon_deg.toFixed(4)}°`} mono />
+            <PanelKV k="LMT offset" v={`${meridian.lmt_offset_h >= 0 ? "+" : ""}${meridian.lmt_offset_h.toFixed(3)}h`} sub="from Kāmākhyā" mono />
+            <PanelKV k="Kali days here" v={meridian.kali_civil_days.toFixed(6)} mono />
+          </PanelGroup>
+
+          <PanelGroup title="अष्टकवर्ग · ASHTAKAVARGA">
+            <PanelKV k="Sarva total" v={String(av?.sarva_total ?? "—")} sub="0..337 bindu strength meter" />
+            <AshtakavargaBars av={av} />
+          </PanelGroup>
+
+          <PanelGroup title="त्रिमूर्ति · TRIMŪRTI (all 3)">
+            <p className="text-[11px] text-gold-500 italic mb-2">
+              The single-needle composite on the dial is the "everyday glance" view. Below are the canonical 3 hands.
+            </p>
+            <PanelKV k="🌅 Brahmā" v={(stamp.trimurti_at_ujjain.aditi.brahma.day_subdivision.fraction_of_day * 24).toFixed(4) + "h"} sub="सृष्टि · creation phase" />
+            <PanelKV k="☀️ Viṣṇu" v={(stamp.trimurti_at_ujjain.aditi.vishnu.day_subdivision.fraction_of_day * 24).toFixed(4) + "h"} sub="स्थिति · preservation" />
+            <PanelKV k="🌇 Maheśa" v={(stamp.trimurti_at_ujjain.aditi.mahesh.day_subdivision.fraction_of_day * 24).toFixed(4) + "h"} sub="संहार · transformation" />
+          </PanelGroup>
+
+          <PanelGroup title="मेटा-वाक्यम् · MASTER META-THEOREM">
+            <p className="text-[11px] text-gold-500 leading-relaxed">
+              Every reading above derives from the single triple <span className="text-gold-300 font-mono">(R, g, k) = (ℤ/3ᵏℤ, 2, k ∈ ℕ⁺)</span> via the 9-tag derivation calculus of APEX-v5 Saptamukhi Bipolar. <br/>
+              Aditi pole · R* → 60·60·6 ghaṭi cascade<br/>
+              Diti pole · (3) → 20·20·2 compressed cascade<br/>
+              Bridge: g = 2 is a primitive root of (ℤ/3ᵏℤ)*<br/>
+              π<sub>(3)</sub>/π = 1/3 · Pisano-of-Ideal invariant
+            </p>
+          </PanelGroup>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PanelGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h4 className="text-[10px] font-display text-gold-500 tracking-[0.25em] mb-1 pb-1 border-b border-gold-700/30">
+        {title}
+      </h4>
+      <div className="space-y-1">{children}</div>
+    </div>
+  )
+}
+
+function PanelKV({ k, v, sub, mono }: { k: string; v: string; sub?: string; mono?: boolean }) {
+  return (
+    <div className="flex justify-between items-baseline gap-3 py-1">
+      <div className="text-[11px] text-gold-600 font-display tracking-wider whitespace-nowrap">{k}</div>
+      <div className="text-right min-w-0">
+        <div className={`text-xs text-gold-200 ${mono ? "font-mono tabular-nums" : ""} truncate`}>{v}</div>
+        {sub && <div className="text-[10px] text-gold-500 italic mt-0.5">{sub}</div>}
+      </div>
+    </div>
+  )
+}
+
+function AshtakavargaBars({ av }: { av: any }) {
+  if (!av?.bhinna_totals) return null
+  const planets = ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn"]
+  return (
+    <div className="mt-2 space-y-1">
+      {planets.map(p => {
+        const v = av.bhinna_totals[p] ?? 0
+        const pct = Math.min(100, (v / 56) * 100)   // 56 is max per-planet bhinna
+        const meta = PLANET_SYMBOL[p]
+        return (
+          <div key={p} className="flex items-center gap-2">
+            <div className="w-5 text-center" style={{ color: meta.color }}>{meta.symbol}</div>
+            <div className="flex-1 h-2 bg-ink-800 rounded-sm overflow-hidden">
+              <div className="h-full rounded-sm" style={{ width: `${pct}%`, background: meta.color, opacity: 0.85 }} />
+            </div>
+            <div className="text-[10px] text-gold-400 font-mono w-8 text-right">{v}</div>
+          </div>
+        )
+      })}
+    </div>
   )
 }

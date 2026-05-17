@@ -121,54 +121,50 @@ test.describe("Vedic Ghaḍī live UI", () => {
     await page.locator('button:has-text("3D यन्त्र-घटिका")').first().click()
   })
 
-  test("10a · 3D DIAL hero + Vedic + Western complications", async ({ page }) => {
-    // Dial is now in the HERO position — first thing visible after the layer cards load
+  test("10a · 3D DIAL hero — saptamukhi-redesigned (4 rings + composite hand + panel + strip)", async ({ page }) => {
+    // Dial is in the HERO position — first thing visible after the layer cards load
     const dial = page.locator('[data-component="sphota-3d-dial"]').first()
     await expect(dial).toBeVisible({ timeout: 15_000 })
 
-    // VEDIC rings — scope all queries to the hero dial so duplicate dials don't double-count
-    const ghatiTicks = dial.locator('[data-tick="ghati-aditi"]')
-    await expect(ghatiTicks).toHaveCount(60)
+    // VEDIC rings — only 4 visible-at-rest rings remain; rāśi / horā / vāra /
+    // saṃvatsara now live in the <SaptamukhiPanel> drawer.
+    await expect(dial.locator('[data-tick="ghati-aditi"]')).toHaveCount(60)
+    await expect(dial.locator('[data-tick="nakshatra"]')).toHaveCount(27)
+    await expect(dial.locator('[data-tick="tithi"]')).toHaveCount(30)
+    await expect(dial.locator('[data-tick="masa"]')).toHaveCount(12)
 
-    const naksWedges = dial.locator('[data-tick="nakshatra"]')
-    await expect(naksWedges).toHaveCount(27)
+    // WESTERN — minute bezel + 12-hour numerals etched on the chrome
+    await expect(dial.locator('[data-tick="western-minute"]')).toHaveCount(60)
+    await expect(dial.locator('[data-tick="western-hour"]')).toHaveCount(12)
 
-    const tithiWedges = dial.locator('[data-tick="tithi"]')
-    await expect(tithiWedges).toHaveCount(30)
-
-    const rashiWedges = dial.locator('[data-tick="rashi"]')
-    await expect(rashiWedges).toHaveCount(12)
-
-    const horaWedges = dial.locator('[data-tick="hora"]')
-    await expect(horaWedges).toHaveCount(24)
-
-    // WESTERN bezel — 60 minute ticks + 12 hour numerals
-    const westMin = dial.locator('[data-tick="western-minute"]')
-    await expect(westMin).toHaveCount(60)
-    const westHour = dial.locator('[data-tick="western-hour"]')
-    await expect(westHour).toHaveCount(12)
-
-    // WESTERN hands — H/M/S needles
+    // HANDS — 3 Western + 1 composite Trimūrti = 4 needles
     await expect(dial.locator('[data-needle="western-hour"]')).toBeVisible()
     await expect(dial.locator('[data-needle="western-minute"]')).toBeVisible()
     await expect(dial.locator('[data-needle="western-second"]')).toBeVisible()
+    await expect(dial.locator('[data-needle="trimurti-composite"]')).toBeVisible()
 
-    // Digital readouts
-    const kReadout = dial.locator('[data-readout="k"]')
-    await expect(kReadout).toBeVisible()
-    expect((await kReadout.innerText()).trim()).toMatch(/^\d[\d,]*\.\d{6}$/)
-
+    // Pakṣa moon chip stays on the dial
     await expect(dial.locator('[data-readout="paksha"]')).toContainText(/(शुक्ल|कृष्ण)-पक्ष/)
-    await expect(dial.locator('[data-readout="vara-lord"]')).toContainText(/-वार/)
-    await expect(dial.locator('[data-readout="samvatsara-name"]')).toContainText("Parābhava")
-    await expect(dial.locator('[data-readout="kali-year"]')).toContainText("5,127")
 
-    // Western civil digital readouts
-    await expect(dial.locator('[data-readout="date"]')).toContainText(/\d{2} [A-Z]{3} \d{4}/)
-    // `dow` badge wraps label + value, so innerText is e.g. "DAYMON" — match anywhere
-    await expect(dial.locator('[data-readout="dow"]')).toContainText(/(SUN|MON|TUE|WED|THU|FRI|SAT)/)
-    await expect(dial.locator('[data-readout="ampm"]')).toContainText(/(AM|PM)/)
-    await expect(dial.locator('[data-readout="civil-time"]')).toContainText(/\d{2}:\d{2}:\d{2}/)
+    // CHIP STRIP — readouts moved out of dial canvas to a sibling strip below
+    const strip = page.locator('[data-component="dial-readout-strip"]').first()
+    await expect(strip).toBeVisible()
+    await expect(strip.locator('[data-readout="k"]')).toBeVisible()
+    await expect(strip.locator('[data-readout="civil-time"]')).toContainText(/\d{2}:\d{2}:\d{2}/)
+    await expect(strip.locator('[data-readout="kali-year"]')).toContainText(/(5,127|Parābhava)/)
+
+    // SAPTAMUKHI PANEL — clicking ॐ opens drawer with the 35 demoted complications
+    await expect(page.locator('[data-component="saptamukhi-panel"]')).toHaveCount(0)
+    await dial.getByRole("button", { name: /saptamukhi/i }).click()
+    const panel = page.locator('[data-component="saptamukhi-panel"]')
+    await expect(panel).toBeVisible({ timeout: 5_000 })
+    await expect(panel).toContainText(/SAPTAMUKHI/i)
+    await expect(panel).toContainText(/Parābhava/)
+    await expect(panel).toContainText(/ASHTAKAVARGA/i)
+    await expect(panel).toContainText(/Brahmā/)
+    // ESC closes
+    await page.keyboard.press("Escape")
+    await expect(panel).toHaveCount(0)
   })
 
   test("10b · ISO mode renders 504 SVG cells (pure-SVG fallback)", async ({ page }) => {

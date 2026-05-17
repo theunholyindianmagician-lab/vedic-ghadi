@@ -31,7 +31,8 @@ const Sphota3DIso = dynamic(
   )},
 )
 
-// 3D analog DIAL — 34 complications (beats Patek Grandmaster Chime's 20)
+// 3D analog DIAL — saptamukhi-redesigned (4 visible rings + composite Trimūrti
+// hand + Saptamukhi side-panel for the other 35 complications). Click ॐ to open.
 const Sphota3DDial = dynamic(
   () => import("./Sphota3DDial").then(m => ({ default: m.Sphota3DDial })),
   { ssr: false, loading: () => (
@@ -39,6 +40,12 @@ const Sphota3DDial = dynamic(
       Loading 3D dial complication…
     </div>
   )},
+)
+// Horizontal chip strip — meridian · civil-time · year · K — rendered BELOW the
+// dial as a sibling so the dial canvas stays a clean circle.
+const DialReadoutStrip = dynamic(
+  () => import("./Sphota3DDial").then(m => ({ default: m.DialReadoutStrip })),
+  { ssr: false },
 )
 
 /**
@@ -107,22 +114,16 @@ export function GhadiClock() {
       <Header isLive={!frozen} civilDisplay={civilDisplay} tz={ci.tz_h} />
 
       <div className="mt-10 grid lg:grid-cols-2 gap-10 items-start">
-        {/* बायाँ स्तम्भ: 3D दिएक्ल — Vedic + Western, 50+ live complications, ticks every RAF */}
+        {/* बायाँ स्तम्भ: redesigned dial (4 rings + composite Trimūrti + sap­tamukhi panel)
+            + horizontal chip strip below + युगादि origin caption */}
         <div className="flex flex-col items-center">
           <div className="w-full max-w-[560px] mx-auto">
-            <Sphota3DDial stamp={stamp} activeMeridianId="kamakhya" size={520} />
+            <Sphota3DDial stamp={stamp} activeMeridianId="kamakhya" size={480} />
+            <DialReadoutStrip stamp={stamp} activeMeridianId="kamakhya" />
           </div>
-          <div className="mt-6 text-center">
-            <div className="font-display text-xs tracking-[0.4em] text-gold-500 mb-2">
-              कामाख्या-केन्द्रित · कलि दिन
-            </div>
-            <div className="font-mono text-xl text-gold-300 tabular">
-              {stamp.kali_civil_days_at_kamakhya.toLocaleString(undefined, {
-                minimumFractionDigits: 6, maximumFractionDigits: 6,
-              })}
-            </div>
-            <div className="text-xs italic text-gold-600/80 mt-1">
-              पवित्र युगादि (शुक्रवार आधी रात 17/18 फरवरी 3102 BCE · अवन्तिकापुर) से दिन
+          <div className="mt-6 text-center max-w-[480px]">
+            <div className="text-xs italic text-gold-600/80">
+              पवित्र युगादि (शुक्रवार आधी रात 17/18 फरवरी 3102 BCE · अवन्तिकापुर) से कामाख्या-केन्द्रित कलि दिन
             </div>
             <div className="mt-2 text-[10px] font-mono text-gold-700 tracking-wider">
               K = JD_UT + 6.1137/24 − 588 465.5 − 1.062/24
