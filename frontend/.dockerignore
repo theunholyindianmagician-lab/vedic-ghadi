@@ -1,0 +1,12 @@
+# 🔱 Cloud Build context exclusions — keep upload <10MB
+.next
+node_modules
+.git
+.vercel
+.env*.local
+*.log
+test-results
+playwright-report
+e2e/_*-snap.spec.ts
+.DS_Store
+README.md
