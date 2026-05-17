@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vedic-ghadi"
-version = "1.0.0"
-description = "Substrate-derived Vedic clock — Kāmākhyā-anchored, Sūrya-Siddhānta-canonical, zero foreign theorem."
+version = "1.1.0"
+description = "Substrate-derived Vedic clock — Kāmākhyā-anchored, Sūrya-Siddhānta-canonical, full pañcāṅga (vāra·tithi·nakṣatra·yoga·karaṇa), zero foreign theorem."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"

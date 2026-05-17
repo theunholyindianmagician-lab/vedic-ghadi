@@ -87,6 +87,14 @@ def test_python_ts_parity(args):
     assert py["day_subdivision"]["vighati_index"] == ts["day_subdivision"]["vighati_index"]
     assert py["day_subdivision"]["prana_index"] == ts["day_subdivision"]["prana_index"]
 
+    # Pañcāṅga additions
+    assert py["nakshatra_layer"]["nakshatra_name"] == ts["nakshatra_layer"]["nakshatra_name"]
+    assert py["nakshatra_layer"]["pada"] == ts["nakshatra_layer"]["pada"]
+    assert py["nakshatra_layer"]["nakshatra_lord"] == ts["nakshatra_layer"]["nakshatra_lord"]
+    assert py["yoga_layer"]["yoga_name"] == ts["yoga_layer"]["yoga_name"]
+    assert py["karana_layer"]["karana_name"] == ts["karana_layer"]["karana_name"]
+    assert py["karana_layer"]["is_movable"] == ts["karana_layer"]["is_movable"]
+
     # Kali day count — within a microsecond
     assert abs(py["kali_civil_days_at_kamakhya"]
                - ts["kali_civil_days_at_kamakhya"]) < 1e-5

@@ -124,6 +124,46 @@ export function GhadiClock() {
           />
 
           <LayerCard
+            badge="NAKṢATRA · LUNAR MANSION"
+            badgeDeva={stamp.nakshatra_layer.nakshatra_devanagari}
+            title={
+              <div className="flex items-baseline gap-3">
+                <span>{stamp.nakshatra_layer.nakshatra_name}</span>
+                <span className="text-gold-600 text-sm">pada {stamp.nakshatra_layer.pada}/4</span>
+              </div>
+            }
+            subtitle={`#${stamp.nakshatra_layer.nakshatra_index} of 27 · deity ${stamp.nakshatra_layer.nakshatra_deity}`}
+            rows={[
+              { label: "Vimśottarī lord", value: stamp.nakshatra_layer.nakshatra_lord },
+              { label: "Moon sidereal lon", value: `${stamp.nakshatra_layer.moon_sidereal_lon_deg.toFixed(4)}°` },
+            ]}
+          />
+
+          <LayerCard
+            badge="YOGA · SUN+MOON ARC"
+            badgeDeva={stamp.yoga_layer.yoga_devanagari}
+            title={stamp.yoga_layer.yoga_name}
+            subtitle={`#${stamp.yoga_layer.yoga_index} of 27 · (Sun + Moon) / 13°20′`}
+            rows={[
+              { label: "Sun + Moon longitude",
+                value: `${stamp.yoga_layer.sun_plus_moon_lon_deg.toFixed(4)}°` },
+              { label: "Fractional yoga",
+                value: stamp.yoga_layer.fractional_yoga.toFixed(4) },
+            ]}
+          />
+
+          <LayerCard
+            badge="KARAṆA · HALF-TITHI"
+            badgeDeva={stamp.karana_layer.karana_devanagari}
+            title={stamp.karana_layer.karana_name}
+            subtitle={
+              stamp.karana_layer.is_movable
+                ? `cara (movable) · cycle ${stamp.karana_layer.movable_cycle_number}/8 · half-tithi #${stamp.karana_layer.karana_index}/60`
+                : `sthira (fixed) · half-tithi #${stamp.karana_layer.karana_index}/60`
+            }
+          />
+
+          <LayerCard
             badge="DINĀRDHA · DAY SUBDIVISION"
             badgeDeva="दिनार्ध"
             accent

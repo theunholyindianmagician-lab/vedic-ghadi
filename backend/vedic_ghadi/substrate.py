@@ -301,6 +301,25 @@ def vedic_time_of_day(kali_civil_days: float) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# ◈ PAÑCĀṄGA helpers — imported lazily so panchanga.py can import substrate.py
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _panchanga_nakshatra(kali_days: float) -> dict:
+    from .panchanga import nakshatra_at_kali_days
+    return nakshatra_at_kali_days(kali_days)
+
+
+def _panchanga_yoga(kali_days: float) -> dict:
+    from .panchanga import yoga_at_kali_days
+    return yoga_at_kali_days(kali_days)
+
+
+def _panchanga_karana(kali_days: float) -> dict:
+    from .panchanga import karana_at_kali_days
+    return karana_at_kali_days(kali_days)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # ◈ THE FULL SUBSTRATE TIME STAMP — single entry point
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -344,6 +363,9 @@ def kala_substrate_stamp(
         "month_layer": vedic_month_at_kali_days(kali_days),
         "tithi_layer": vedic_tithi_at_kali_days(kali_days),
         "vara_layer":  vedic_vara_at_kali_days(kali_days),
+        "nakshatra_layer": _panchanga_nakshatra(kali_days),
+        "yoga_layer":      _panchanga_yoga(kali_days),
+        "karana_layer":    _panchanga_karana(kali_days),
         "day_subdivision": vedic_time_of_day(kali_days),
         "substrate_alignment": VEDIC_TIME_SUBSTRATE,
         "kamakhya_meridian_offset_h": KAMAKHYA_LMT_OFFSET_H,

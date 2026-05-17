@@ -301,6 +301,9 @@ export interface YearLayer {
   anchor_epoch: string
 }
 
+import type { NakshatraLayer, YogaLayer, KaranaLayer } from "./panchanga.ts"
+import { nakshatraAtKaliDays, yogaAtKaliDays, karanaAtKaliDays } from "./panchanga.ts"
+
 export interface SubstrateStamp {
   input_civil: {
     gregorian_year: number; month: number; day: number
@@ -311,6 +314,9 @@ export interface SubstrateStamp {
   month_layer: MonthLayer
   tithi_layer: TithiLayer
   vara_layer: VaraLayer
+  nakshatra_layer: NakshatraLayer
+  yoga_layer: YogaLayer
+  karana_layer: KaranaLayer
   day_subdivision: DaySubdivision
   substrate_alignment: typeof VEDIC_TIME_SUBSTRATE
   kamakhya_meridian_offset_h: number
@@ -342,6 +348,9 @@ export function kalaSubstrateStamp(
     month_layer: vedicMonthAtKaliDays(kaliDays),
     tithi_layer: vedicTithiAtKaliDays(kaliDays),
     vara_layer: vedicVaraAtKaliDays(kaliDays),
+    nakshatra_layer: nakshatraAtKaliDays(kaliDays),
+    yoga_layer: yogaAtKaliDays(kaliDays),
+    karana_layer: karanaAtKaliDays(kaliDays),
     day_subdivision: vedicTimeOfDay(kaliDays),
     substrate_alignment: VEDIC_TIME_SUBSTRATE,
     kamakhya_meridian_offset_h: KAMAKHYA_LMT_OFFSET_H,

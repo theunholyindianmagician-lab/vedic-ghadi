@@ -5,17 +5,24 @@ Kāli civil days from the sacred epoch (Friday midnight 17/18 February 3102
 BCE, Ujjayinī meridian, Sūrya Siddhānta 1.45–1.57).**
 
 ```
-   VARṢA   →  Kali 5128 · Vikrama 2083 · Śaka 1948 · Saṃvatsara: Parābhava
-   MĀSA    →  Jyeṣṭha (#3 of 12) · Sun in Vṛṣabha
-   PAKṢA   →  Śukla
-   TITHI   →  Dvitīyā (#2 of 30)
-   VĀRA    →  Ravivāra · Lord: Sun
-   MUHŪRTA →  #20 / 30        (48-min block)
-   GHAṬI   →  #40 / 60        (24-min block)
-   VIGHAṬI →  #34 / 60        (24-sec block)
-   PRĀṆA   →  # 5 / 6         (4-sec block · the live sweep)
-   VIPALA  →  9.83 / 10       (0.4-sec resolution)
+   VARṢA    →  Kali 5128 · Vikrama 2083 · Śaka 1948 · Saṃvatsara: Parābhava
+   MĀSA     →  Jyeṣṭha (#3 of 12) · Sun in Vṛṣabha
+   PAKṢA    →  Śukla
+   TITHI    →  Dvitīyā (#2 of 30)
+   VĀRA     →  Ravivāra · Lord: Sun
+   NAKṢATRA →  Rohiṇī (#4 of 27) · pada 3/4 · deity Brahmā · Vimś. lord Moon
+   YOGA     →  Atigaṇḍa (#6 of 27)
+   KARAṆA   →  Bālava (cara, cycle 1/8) · half-tithi #3 of 60
+   MUHŪRTA  →  #20 / 30        (48-min block)
+   GHAṬI    →  #40 / 60        (24-min block)
+   VIGHAṬI  →  #34 / 60        (24-sec block)
+   PRĀṆA    →   #5 / 6         (4-sec block · the live sweep)
+   VIPALA   →  9.83 / 10       (0.4-sec resolution)
 ```
+
+**The full pañcāṅga** (five limbs · vāra · tithi · nakṣatra · yoga · karaṇa)
+plus the **time-skeleton** (varṣa · saṃvatsara · māsa · pakṣa) plus the
+**day-subdivision cascade** (muhūrta · ghaṭi · vighaṭi · prāṇa · vipala).
 
 **ZERO foreign theorem in the chain.** Every constant is Bhārat-canonical
 (Sūrya Siddhānta + Vedānga Jyotiṣa). Every divisor factors over `(2, 3, 5)`

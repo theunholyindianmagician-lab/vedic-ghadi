@@ -117,6 +117,32 @@ def render_ghadi_text(stamp: dict, width: int = 78) -> str:
     out.append(f"     Vāra-lord graha              : {v['vara_lord_graha']}")
     out.append("")
 
+    n = stamp.get("nakshatra_layer")
+    yg = stamp.get("yoga_layer")
+    kr = stamp.get("karana_layer")
+    if n and yg and kr:
+        out.append(sub)
+        out.append("  ◈ PAÑCĀṄGA  ·  NAKṢATRA · YOGA · KARAṆA")
+        out.append(sub)
+        out.append(
+            f"     Nakṣatra                     : {n['nakshatra_name']} ({n['nakshatra_devanagari']})"
+            f"   ·  #{n['nakshatra_index']} of 27  · pada {n['pada']}/4"
+        )
+        out.append(
+            f"     Nakṣatra deity / lord        : {n['nakshatra_deity']:>14} / {n['nakshatra_lord']}"
+        )
+        out.append(
+            f"     Yoga                         : {yg['yoga_name']} ({yg['yoga_devanagari']})"
+            f"   ·  #{yg['yoga_index']} of 27"
+        )
+        karaṇa_tag = "cara" if kr["is_movable"] else "sthira"
+        cyc = f" (cycle {kr['movable_cycle_number']}/8)" if kr["is_movable"] else ""
+        out.append(
+            f"     Karaṇa                       : {kr['karana_name']} ({kr['karana_devanagari']})"
+            f"   ·  half-tithi #{kr['karana_index']} of 60  · {karaṇa_tag}{cyc}"
+        )
+        out.append("")
+
     out.append(sub)
     out.append("  ◈ DINĀRDHA  ·  DAY SUBDIVISION  (since Kāmākhyā-midnight)")
     out.append(sub)
