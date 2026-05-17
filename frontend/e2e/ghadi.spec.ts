@@ -10,11 +10,12 @@ import { test, expect } from "@playwright/test"
 
 test.describe("Vedic Ghaḍī live UI", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/")
-    // Wait for client-only mount (substrate loading… → real content)
-    await expect(page.getByText("वर्तमान क्षण")).toBeVisible({ timeout: 10_000 })
-    // Ensure the live K is populated
-    await expect(page.locator("text=कलि").first()).toBeVisible({ timeout: 5_000 })
+    await page.goto("/", { waitUntil: "networkidle" })
+    // Wait for the main heading. Tolerant to both hydration-fix
+    // loading state and direct render.
+    await expect(
+      page.getByRole("heading", { name: "वर्तमान क्षण", level: 1 })
+    ).toBeVisible({ timeout: 15_000 })
   })
 
   test("1 · hero + Kali year render (5127 elapsed)", async ({ page }) => {

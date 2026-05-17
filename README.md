@@ -1,7 +1,19 @@
 # 🔱 वैदिक घडी · Vedic Ghaḍī
 
+[![CI](https://github.com/theunholyindianmagician-lab/vedic-ghadi/actions/workflows/ci.yml/badge.svg)](https://github.com/theunholyindianmagician-lab/vedic-ghadi/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/vedic-ghadi.svg?label=PyPI&color=d4a44c)](https://pypi.org/project/vedic-ghadi/)
+[![Live](https://img.shields.io/badge/live-vedic--ghadi.vercel.app-cf6a1e?logo=vercel)](https://vedic-ghadi.vercel.app)
+[![License](https://img.shields.io/badge/license-MIT-7a5c1f.svg)](LICENSE)
+
 > हर वैदिक काल-इकाई एक ही substrate-राशि से निकलती है — पवित्र युगादि से कलि सावन दिन।
 > Web UI पूरी हिन्दी में + हर सूत्र expose · CLI English के साथ।
+
+> **89 million sphoṭa claim-space** · 504 cells · 84 meridians × 2 poles × 3 Trimūrti
+> Per-cell: नक्षत्र · पाद · योग · करण · 9 graha-nakṣatras · 21 vargas · Aṣṭakavarga 337-bindu
+
+> **Auto-deploy:** every push to `main` triggers Vercel auto-deploy + GitHub Actions CI runs
+> pytest (133) + typecheck + Next build + Py↔TS parity + Playwright E2E (14 specs) against
+> the new live URL.
 
 
 **Substrate-derived live Vedic clock — every unit traces to a single quantity:
@@ -208,6 +220,26 @@ See `frontend/app/about/page.tsx` (rendered at `/about`). Brief version:
    Vākyam (substrate alignment).
 
 ---
+
+## Auto-deploy + CI
+
+Every push to `main` triggers:
+
+1. **GitHub Actions CI** ([.github/workflows/ci.yml](.github/workflows/ci.yml))
+   - 🐍 Python: pytest (133 assertions) + audit_formulae.py (157 checks)
+   - 🎨 Frontend: typecheck + Next.js build
+   - ⚖️ Py↔TS parity: 84 meridians × 4 anchor dates
+   - 🎭 E2E: Playwright against the just-deployed Vercel URL (14 specs)
+
+2. **Vercel auto-deploy** (linked via GitHub App)
+   - Build settings: `frontend/` rootDirectory · `npm install --legacy-peer-deps`
+   - Production URL: <https://vedic-ghadi.vercel.app>
+   - Preview deploys for every PR
+
+To run E2E locally against the live deploy:
+```bash
+cd frontend && npm run e2e:live
+```
 
 ## Licence
 
