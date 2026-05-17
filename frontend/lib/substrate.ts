@@ -51,13 +51,36 @@ export function kaliCivilDaysToJd(kaliDays: number): number {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ◈ Sūrya Siddhānta mean motions (Sun + Moon)
+// ◈ Sūrya Siddhānta mean motions — all 9 Navagraha
 // ═══════════════════════════════════════════════════════════════════════════
 
-const SS_REVS = { Sun: 4_320_000, Moon: 57_753_336 } as const
-type Graha = keyof typeof SS_REVS
+const SS_REVS: Record<string, number> = {
+  Sun:     4_320_000,
+  Moon:    57_753_336,
+  Mars:    2_296_832,
+  Mercury: 17_937_060,
+  Jupiter: 364_220,
+  Venus:   7_022_376,
+  Saturn:  146_568,
+  Rahu:   -232_238,           // retrograde
+}
 
-export function vedicMeanLongitude(graha: Graha, kaliCivilDays: number): number {
+export const GRAHA_NAMES = [
+  "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu",
+] as const
+
+export const GRAHA_DEV = [
+  "सूर्य", "चन्द्र", "मङ्गल", "बुध", "गुरु", "शुक्र", "शनि", "राहु", "केतु",
+] as const
+
+export const GRAHA_SYMBOL = ["☉", "☽", "♂", "☿", "♃", "♀", "♄", "☊", "☋"] as const
+
+export function vedicMeanLongitude(graha: string, kaliCivilDays: number): number {
+  if (graha === "Ketu") {
+    const rahu = vedicMeanLongitude("Rahu", kaliCivilDays)
+    return (rahu + 180.0) % 360.0
+  }
+  if (!(graha in SS_REVS)) throw new Error(`${graha} not supported`)
   const revs = SS_REVS[graha]
   const rate = (revs * 360.0) / MAHAYUGA_CIVIL_DAYS
   const lon = (rate * kaliCivilDays) % 360.0
@@ -323,6 +346,10 @@ export interface TrimurtiView {
   nakshatra: NakshatraLayer
   yoga: YogaLayer
   karana: KaranaLayer
+  // v1.8.0 — full cosmic snapshot (compact ints)
+  graha_nakshatras: number[]    // [9 ints, each 1..27]
+  vargas_moon: number[]          // [21 ints, each 0..11]
+  moon_lon_deg: number
 }
 
 export function computeTrimurtiViews(
@@ -332,6 +359,19 @@ export function computeTrimurtiViews(
   const out = {} as Record<TrimurtiId, TrimurtiView>
   for (const op of TRIMURTI_OPERATORS) {
     const kShifted = kMeridian + op.offset_days
+
+    // 9 graha nakṣatras (compact: 1..27 indices)
+    const grahaNaks: number[] = []
+    for (const graha of GRAHA_NAMES) {
+      const lonG = vedicMeanLongitude(graha, kShifted)
+      const naksIdx = Math.floor(lonG / (360.0 / 27.0)) % 27
+      grahaNaks.push(((naksIdx % 27) + 27) % 27 + 1)
+    }
+
+    // Moon's 21 vargas (compact: 0..11 sign indices)
+    const moonLon = vedicMeanLongitude("Moon", kShifted)
+    const vargasMoon = computeAllVargas(moonLon)
+
     out[op.id as TrimurtiId] = {
       operator_id: op.id as TrimurtiId,
       operator_en: op.en,
@@ -342,10 +382,12 @@ export function computeTrimurtiViews(
       phase_offset_days: Math.round(op.offset_days * 1e6) / 1e6,
       k_shifted: Math.round(kShifted * 1e6) / 1e6,
       day_subdivision: poleFunc(kShifted),
-      // Full pañcāṅga at this cell — varies across Trimurti shifts
       nakshatra: nakshatraAtKaliDays(kShifted),
       yoga:      yogaAtKaliDays(kShifted),
       karana:    karanaAtKaliDays(kShifted),
+      graha_nakshatras: grahaNaks,
+      vargas_moon: vargasMoon,
+      moon_lon_deg: Math.round(moonLon * 1e4) / 1e4,
     }
   }
   return out
@@ -404,7 +446,9 @@ export interface YearLayer {
 
 import type { NakshatraLayer, YogaLayer, KaranaLayer } from "./panchanga.ts"
 import { nakshatraAtKaliDays, yogaAtKaliDays, karanaAtKaliDays } from "./panchanga.ts"
+import { computeAllVargas, VARGA_LIST, SIGN_NAMES, SIGN_DEV, SIGN_GLYPH } from "./vargas.ts"
 export type { NakshatraLayer, YogaLayer, KaranaLayer }
+export { VARGA_LIST, SIGN_NAMES, SIGN_DEV, SIGN_GLYPH } from "./vargas.ts"
 
 export interface MeridianView {
   label_en: string
@@ -449,6 +493,9 @@ export interface SubstrateStamp {
     id: string; en: string; hi: string; sub: string
     offset_days: number; icon: string; tag: string
   }>
+  graha_metadata: Array<{ name: string; dev: string; symbol: string }>
+  varga_metadata: Array<{ n: number; abbrev: string; name_en: string; name_hi: string; body: string }>
+  sign_metadata: Array<{ name: string; dev: string; glyph: string }>
   bipolar_discipline: {
     aditi_pole: string
     diti_pole: string
@@ -729,6 +776,16 @@ export function kalaSubstrateStamp(
       offset_days: op.offset_days,
       icon: op.icon,
       tag: op.tag,
+    })),
+    // Lookup tables for client-side display of per-cell compact ints
+    graha_metadata: GRAHA_NAMES.map((name, i) => ({
+      name, dev: GRAHA_DEV[i], symbol: GRAHA_SYMBOL[i],
+    })),
+    varga_metadata: VARGA_LIST.map(v => ({
+      n: v[0], abbrev: v[1], name_en: v[2], name_hi: v[3], body: v[4],
+    })),
+    sign_metadata: SIGN_NAMES.map((name, i) => ({
+      name, dev: SIGN_DEV[i], glyph: SIGN_GLYPH[i],
     })),
     bipolar_discipline: {
       aditi_pole: "R* · unit-group · Deva-side · mukti · 30/60/60/6/10 cascade (1 vipala = 0.4 sec)",

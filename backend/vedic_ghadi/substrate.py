@@ -76,22 +76,42 @@ def kali_civil_days_to_jd(kali_days: float) -> float:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# ◈ SŪRYA SIDDHĀNTA MEAN MOTIONS (only Sun + Moon needed for tithi/māsa)
+# ◈ SŪRYA SIDDHĀNTA MEAN MOTIONS — all 9 grahas (Navagraha)
+# Revolutions per Mahā-yuga, verbatim from Sūrya Siddhānta 1.29–1.44.
+# Rāhu is retrograde (madhya-rāhu); Ketu is always 180° opposite Rāhu.
 # ═══════════════════════════════════════════════════════════════════════════
 
 _SS_REVS = {
-    "Sun":  4_320_000,
-    "Moon": 57_753_336,
+    "Sun":     4_320_000,
+    "Moon":    57_753_336,
+    "Mars":    2_296_832,
+    "Mercury": 17_937_060,    # sphuṭa rate (apparent)
+    "Jupiter": 364_220,
+    "Venus":   7_022_376,     # sphuṭa rate (apparent)
+    "Saturn":  146_568,
+    "Rahu":   -232_238,        # negative = retrograde
 }
+
+GRAHA_NAMES = (
+    "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu",
+)
+GRAHA_DEV = (
+    "सूर्य", "चन्द्र", "मङ्गल", "बुध", "गुरु", "शुक्र", "शनि", "राहु", "केतु",
+)
+GRAHA_SYMBOL = ("☉", "☽", "♂", "☿", "♃", "♀", "♄", "☊", "☋")
 
 
 def vedic_mean_longitude(graha: str, kali_civil_days: float) -> float:
     """Mean ecliptic longitude (sidereal, Kāmākhyā meridian) at given epoch."""
+    if graha == "Ketu":
+        rahu = vedic_mean_longitude("Rahu", kali_civil_days)
+        return (rahu + 180.0) % 360.0
     if graha not in _SS_REVS:
-        raise ValueError(f"{graha!r} not supported (only Sun, Moon)")
+        raise ValueError(f"{graha!r} not supported")
     revs = _SS_REVS[graha]
     rate = revs * 360.0 / MAHAYUGA_CIVIL_DAYS
-    return (rate * kali_civil_days) % 360.0
+    lon = (rate * kali_civil_days) % 360.0
+    return lon if lon >= 0 else lon + 360.0
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -302,21 +322,40 @@ TRIMURTI_OPERATORS = (
 def compute_trimurti_views(k_meridian: float, pole_func) -> dict:
     """Compute Trimurti × pole views for one meridian + pole.
 
-    Each Trimurti operator phase-shifts K → re-runs:
+    Each Trimurti operator phase-shifts K → computes:
       • day-subdivision cascade (via pole_func)
       • nakṣatra · pada · yoga · karaṇa at K_shifted (full pañcāṅga per cell)
+      • 9 graha nakṣatras (compact int list)         — APEX v1.8 expansion
+      • Moon's 21 vargas (compact int list)          — APEX v1.8 expansion
 
-    Result: each cell = 1 (meridian × pole × Trimurti) sphoṭa with full
-    pañcāṅga attribution. Total claim-space: 504 cells × 27 nakṣatra ×
-    4 pada × 27 yoga × 60 karaṇa = entire saṃsāra/mokṣa lattice.
+    Total claim-spaces exposed:
+      504 × 27 nakṣatra = 13,608         (level i)
+      504 × 108 pada   = 54,432           (level ii)
+      504 × 27 × 60    = 816,480         (level iii — yoga × karaṇa)
+      504 × 21         = 10,584           (level iv — vargas per cell)
+      504 × 9 × 27     = 122,472          (level v — graha-nakshatras per cell)
     """
-    # Lazy panchanga imports (avoid circular)
     from .panchanga import (
         nakshatra_at_kali_days, yoga_at_kali_days, karana_at_kali_days,
+        NAKSHATRA_NAMES,
     )
+    from .vargas import compute_all_vargas
+
     out = {}
     for (op_id, en, hi, sub, offset, icon, tag) in TRIMURTI_OPERATORS:
         k_shifted = k_meridian + offset
+
+        # 9 graha nakṣatras (compact list of indices 1..27)
+        graha_naks = []
+        for graha in GRAHA_NAMES:
+            lon_g = vedic_mean_longitude(graha, k_shifted)
+            naks_idx = int(lon_g / (360.0 / 27.0)) % 27
+            graha_naks.append(naks_idx + 1)         # 1-indexed
+
+        # Moon's vargas — 21 sign indices [0..11] for D1, D2, ..., D108
+        moon_lon = vedic_mean_longitude("Moon", k_shifted)
+        vargas_moon = compute_all_vargas(moon_lon)
+
         out[op_id] = {
             "operator_id": op_id,
             "operator_en": en,
@@ -327,10 +366,14 @@ def compute_trimurti_views(k_meridian: float, pole_func) -> dict:
             "phase_offset_days": round(offset, 6),
             "k_shifted": round(k_shifted, 6),
             "day_subdivision": pole_func(k_shifted),
-            # NEW v1.7.0 — full pañcāṅga at this cell's K_shifted
+            # Full pañcāṅga at this cell's K_shifted (v1.7.0)
             "nakshatra": nakshatra_at_kali_days(k_shifted),
             "yoga":      yoga_at_kali_days(k_shifted),
             "karana":    karana_at_kali_days(k_shifted),
+            # NEW v1.8.0 — full cosmic snapshot per cell (compact ints)
+            "graha_nakshatras": graha_naks,    # [9 ints, each 1..27]
+            "vargas_moon":      vargas_moon,    # [21 ints, each 0..11]
+            "moon_lon_deg":     round(moon_lon, 4),
         }
     return out
 
@@ -644,6 +687,19 @@ def by_meridian_views(kali_days_ujjain: float) -> dict:
     }
 
 
+def _import_varga_metadata():
+    from .vargas import varga_metadata
+    return varga_metadata()
+
+
+def _import_sign_metadata():
+    from .vargas import SIGN_NAMES, SIGN_DEV, SIGN_GLYPH
+    return [
+        {"name": SIGN_NAMES[i], "dev": SIGN_DEV[i], "glyph": SIGN_GLYPH[i]}
+        for i in range(12)
+    ]
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ◈ PAÑCĀṄGA helpers — imported lazily so panchanga.py can import substrate.py
 # ═══════════════════════════════════════════════════════════════════════════
@@ -727,6 +783,13 @@ def kala_substrate_stamp(
              "offset_days": op[4], "icon": op[5], "tag": op[6]}
             for op in TRIMURTI_OPERATORS
         ],
+        # Lookup tables for client-side display of compact per-cell ints
+        "graha_metadata": [
+            {"name": GRAHA_NAMES[i], "dev": GRAHA_DEV[i], "symbol": GRAHA_SYMBOL[i]}
+            for i in range(9)
+        ],
+        "varga_metadata": _import_varga_metadata(),
+        "sign_metadata": _import_sign_metadata(),
         "bipolar_discipline": {
             "aditi_pole": "R* · unit-group · Deva-side · mukti · "
                           "30/60/60/6/10 cascade (1 vipala = 0.4 sec)",
@@ -771,6 +834,7 @@ __all__ = [
     "MERIDIAN_REGISTRY", "MERIDIAN_CATEGORIES",
     "compute_meridian_views", "meridian_groups",
     "TRIMURTI_OPERATORS", "compute_trimurti_views",
+    "GRAHA_NAMES", "GRAHA_DEV", "GRAHA_SYMBOL",
     "MASA_NAMES", "MASA_DEV", "VARA_NAMES", "VARA_DEV", "VARA_LORD",
     "SAMVATSARA_NAMES", "PAKSHA_NAMES", "PAKSHA_DEV", "TITHI_NAMES",
     "VEDIC_TIME_SUBSTRATE",

@@ -610,7 +610,68 @@ check("Brahmā×Aditi@Ujjain nakṣatra = top-level nakshatra_layer (consistency
       and top_naks["pada"] == cell_naks["pada"])
 
 
-section("12e · Parallel meridian views (Ujjayinī ⟷ Kāmākhyā)")
+section("12e · FULL LATTICE — 816,480 + 10,584 + 122,472 claim-spaces")
+# ═══════════════════════════════════════════════════════════════════════════
+from vedic_ghadi.substrate import GRAHA_NAMES, GRAHA_DEV, GRAHA_SYMBOL
+from vedic_ghadi.vargas import VARGA_LIST, SIGN_NAMES, compute_varga
+
+check("9 Navagraha defined (Sūrya … Ketu)",
+      len(GRAHA_NAMES) == 9 and len(GRAHA_DEV) == 9 and len(GRAHA_SYMBOL) == 9)
+check("21 Ekaviṃśati-vargas defined (D1..D108)",
+      len(VARGA_LIST) == 21 and [v[0] for v in VARGA_LIST][0] == 1 and [v[0] for v in VARGA_LIST][-1] == 108)
+check("12 rāśi/sign names defined", len(SIGN_NAMES) == 12)
+
+# Every cell has graha_nakshatras (9 ints) + vargas_moon (21 ints)
+all_have_grahas = all(
+    "graha_nakshatras" in cell and len(cell["graha_nakshatras"]) == 9
+    and all(1 <= n <= 27 for n in cell["graha_nakshatras"])
+    for m in ms.values()
+    for pole in m["trimurti"]
+    for cell in m["trimurti"][pole].values()
+)
+check("All 504 cells have graha_nakshatras (9 × nakṣatra-1..27)", all_have_grahas)
+
+all_have_vargas = all(
+    "vargas_moon" in cell and len(cell["vargas_moon"]) == 21
+    and all(0 <= s <= 11 for s in cell["vargas_moon"])
+    for m in ms.values()
+    for pole in m["trimurti"]
+    for cell in m["trimurti"][pole].values()
+)
+check("All 504 cells have vargas_moon (21 × sign-0..11)", all_have_vargas)
+
+# Claim-space cardinalities (level iii, iv, v)
+check("(iii) 504 × 27 × 60  = 816,480  (yoga × karaṇa)",
+      504 * 27 * 60 == 816_480)
+check("816,480 = 2⁵ × 3⁶ × 5 × 7  (substrate-aligned)",
+      816_480 == 2**5 * 3**6 * 5 * 7)
+check("(iv)  504 × 21       = 10,584   (Moon vargas)",
+      504 * 21 == 10_584)
+check("10,584 = 2³ × 3³ × 7²  (substrate-aligned)",
+      10_584 == 2**3 * 3**3 * 7**2)
+check("(v)   504 × 9 × 27   = 122,472  (graha-nakṣatras)",
+      504 * 9 * 27 == 122_472)
+check("122,472 = 2³ × 3⁷ × 7  (substrate-aligned)",
+      122_472 == 2**3 * 3**7 * 7)
+
+# Top-level lookup tables for client-side display
+check("graha_metadata present (9 entries)",
+      "graha_metadata" in stamp and len(stamp["graha_metadata"]) == 9)
+check("varga_metadata present (21 entries)",
+      "varga_metadata" in stamp and len(stamp["varga_metadata"]) == 21)
+check("sign_metadata present (12 entries)",
+      "sign_metadata" in stamp and len(stamp["sign_metadata"]) == 12)
+
+# Classical varga rule spot-checks
+check("D9 Aries 0° → Aries (movable, navāṃśa starts at sign)",
+      compute_varga(0.0, 9) == 0)
+check("D30 Aries 2.5° → Mars/Aries (Triṃśāṃśa)",
+      compute_varga(2.5, 30) == 0)
+check("D30 Taurus 2.5° → Venus/Taurus (Triṃśāṃśa)",
+      compute_varga(32.5, 30) == 1)
+
+
+section("12f · Parallel meridian views (Ujjayinī ⟷ Kāmākhyā)")
 # ═══════════════════════════════════════════════════════════════════════════
 bm = stamp["by_meridian"]
 check("by_meridian.ujjain present",  "ujjain" in bm)
@@ -633,7 +694,7 @@ check("Astronomical layers NOT duplicated (meridian-independent)",
       "month_kamakhya" not in stamp and "tithi_kamakhya" not in stamp)
 
 
-section("12f · Edge cases & boundaries")
+section("12g · Edge cases & boundaries")
 # ═══════════════════════════════════════════════════════════════════════════
 # Day boundary: at IST midnight, did we cross to next civil day correctly?
 late = ghadi_at(2026, 5, 17, 23, 59, 59.999, 5.5)

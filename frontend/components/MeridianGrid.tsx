@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react"
 import type { SubstrateStamp, MeridianFullView, DaySubdivision, TrimurtiId, PoleId } from "@/lib/substrate"
+import { CellDetailPanel } from "./CellDetailPanel"
 
 type Pole = PoleId | "both"
 type Trimurti = TrimurtiId
@@ -26,6 +27,7 @@ export function MeridianGrid({ stamp }: { stamp: SubstrateStamp }) {
   const [query, setQuery] = useState("")
   const [pole, setPole] = useState<Pole>("aditi")
   const [trimurti, setTrimurti] = useState<Trimurti>("brahma")
+  const [selectedMeridianId, setSelectedMeridianId] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {}
     for (const [catId] of stamp.meridian_categories) init[catId] = true
@@ -76,6 +78,8 @@ export function MeridianGrid({ stamp }: { stamp: SubstrateStamp }) {
   const totalSphoTas   = allMeridians.length * 2 * 3      // 504 trimurti×bipolar
 
   const td = TRIMURTI_DISPLAY[trimurti]
+  const selectedMeridian = selectedMeridianId ? stamp.meridians[selectedMeridianId] : null
+  const polarForDetail: PoleId = pole === "both" ? "aditi" : pole
 
   return (
     <section className="mt-10 rounded-sm border border-gold-700/40 bg-ink-900/40 overflow-hidden">
@@ -145,6 +149,8 @@ export function MeridianGrid({ stamp }: { stamp: SubstrateStamp }) {
                   ujjainVara={ujjainVara}
                   pole={pole}
                   trimurti={trimurti}
+                  selectedId={selectedMeridianId}
+                  onSelect={(id) => setSelectedMeridianId(prev => prev === id ? null : id)}
                 />
               )
             })}
@@ -155,6 +161,22 @@ export function MeridianGrid({ stamp }: { stamp: SubstrateStamp }) {
       {totalShown === 0 && (
         <div className="px-6 py-12 text-center text-gold-600 italic">
           कोई meridian नहीं मिला · no match for &quot;{query}&quot;
+        </div>
+      )}
+
+      {selectedMeridian && (
+        <div className="border-t border-gold-700/40 bg-ink-800/30 px-6 py-5">
+          <CellDetailPanel
+            stamp={stamp}
+            m={selectedMeridian}
+            pole={polarForDetail}
+            trimurti={trimurti}
+          />
+        </div>
+      )}
+      {!selectedMeridian && (
+        <div className="border-t border-gold-700/40 bg-ink-800/20 px-6 py-3 text-center text-[11px] text-gold-600 italic">
+          💡 किसी भी row पर click करो → full cell detail panel (9 graha-nakṣatras + 21 vargas + pañcāṅga)
         </div>
       )}
 
@@ -270,7 +292,7 @@ function Header({ pole }: { pole: Pole }) {
 }
 
 function CategoryGroup({
-  catId, label, rows, totalInCat, open, onToggle, ujjainVara, pole, trimurti,
+  catId, label, rows, totalInCat, open, onToggle, ujjainVara, pole, trimurti, selectedId, onSelect,
 }: {
   catId: string
   label: string
@@ -281,6 +303,8 @@ function CategoryGroup({
   ujjainVara: number
   pole: Pole
   trimurti: Trimurti
+  selectedId: string | null
+  onSelect: (id: string) => void
 }) {
   const showing = rows.length
   const colSpan = pole === "both" ? 11 : 9
@@ -302,23 +326,32 @@ function CategoryGroup({
         </td>
       </tr>
       {open && rows.map(m => (
-        <MeridianRow key={`${catId}-${m.id}`} m={m} ujjainVara={ujjainVara} pole={pole} trimurti={trimurti} />
+        <MeridianRow
+          key={`${catId}-${m.id}`}
+          m={m}
+          ujjainVara={ujjainVara}
+          pole={pole}
+          trimurti={trimurti}
+          isSelected={selectedId === m.id}
+          onClick={() => onSelect(m.id)}
+        />
       ))}
     </>
   )
 }
 
 function MeridianRow({
-  m, ujjainVara, pole, trimurti,
-}: { m: MeridianFullView; ujjainVara: number; pole: Pole; trimurti: Trimurti }) {
+  m, ujjainVara, pole, trimurti, isSelected, onClick,
+}: { m: MeridianFullView; ujjainVara: number; pole: Pole; trimurti: Trimurti; isSelected: boolean; onClick: () => void }) {
   const v = m.vara
   const isUjjain = m.id === "ujjain"
   const isKamakhya = m.id === "kamakhya"
   const varaDiffers = v.vara_index !== ujjainVara
   const rowCls = [
-    "border-b border-gold-700/15 hover:bg-gold-500/5 transition-colors",
-    isUjjain ? "bg-gold-500/5" : "",
-    isKamakhya ? "bg-amber-ember/5" : "",
+    "border-b border-gold-700/15 cursor-pointer hover:bg-gold-500/10 transition-colors",
+    isSelected ? "bg-gold-500/15 outline outline-1 outline-gold-500/60" : "",
+    !isSelected && isUjjain ? "bg-gold-500/5" : "",
+    !isSelected && isKamakhya ? "bg-amber-ember/5" : "",
   ].join(" ")
 
   const cityCol = (
@@ -349,7 +382,7 @@ function MeridianRow({
   if (pole === "both") {
     const n = m.trimurti.aditi[trimurti].nakshatra
     return (
-      <tr className={rowCls}>
+      <tr className={rowCls} onClick={onClick}>
         {cityCol}
         <td className="px-2 py-2 text-right font-mono text-xs text-gold-500 tabular">
           {m.lon_deg >= 0 ? "+" : ""}{m.lon_deg.toFixed(2)}°
@@ -379,7 +412,7 @@ function MeridianRow({
   const pranaMax = pole === "diti" ? 2 : 6
 
   return (
-    <tr className={rowCls}>
+    <tr className={rowCls} onClick={onClick}>
       {cityCol}
       <td className="px-2 py-2 text-right font-mono text-xs text-gold-500 tabular">
         {m.lon_deg >= 0 ? "+" : ""}{m.lon_deg.toFixed(4)}°
