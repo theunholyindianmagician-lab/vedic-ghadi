@@ -1,4 +1,8 @@
-# 🔱 Vedic Ghaḍī
+# 🔱 वैदिक घडी · Vedic Ghaḍī
+
+> हर वैदिक काल-इकाई एक ही substrate-राशि से निकलती है — पवित्र युगादि से कलि सावन दिन।
+> Web UI पूरी हिन्दी में + हर सूत्र expose · CLI English के साथ।
+
 
 **Substrate-derived live Vedic clock — every unit traces to a single quantity:
 Kāli civil days from the sacred epoch (Friday midnight 17/18 February 3102

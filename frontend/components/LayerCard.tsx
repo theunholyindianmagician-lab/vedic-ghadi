@@ -9,9 +9,10 @@ interface LayerCardProps {
   subtitle?: ReactNode      // supporting line
   rows?: { label: string; value: ReactNode }[]
   accent?: boolean          // brighter gold treatment
+  formula?: string          // inline mini-formula shown at the bottom
 }
 
-export function LayerCard({ badge, badgeDeva, title, subtitle, rows, accent }: LayerCardProps) {
+export function LayerCard({ badge, badgeDeva, title, subtitle, rows, accent, formula }: LayerCardProps) {
   return (
     <div className={[
       "relative rounded-sm border bg-ink-900/60 backdrop-blur-sm p-5",
@@ -42,6 +43,16 @@ export function LayerCard({ badge, badgeDeva, title, subtitle, rows, accent }: L
               <span className="text-gold-300 tabular">{r.value}</span>
             </div>
           ))}
+        </div>
+      )}
+      {formula && (
+        <div className="mt-4 pt-3 border-t border-gold-700/25">
+          <div className="text-[10px] tracking-[0.2em] text-gold-600 font-display mb-1">
+            सूत्र · FORMULA
+          </div>
+          <code className="block text-[11px] font-mono text-gold-400/90 leading-relaxed">
+            {formula}
+          </code>
         </div>
       )}
     </div>

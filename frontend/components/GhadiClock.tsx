@@ -5,17 +5,15 @@ import { kalaSubstrateStamp, type SubstrateStamp } from "@/lib/substrate"
 import { TimeYantra } from "./TimeYantra"
 import { LayerCard } from "./LayerCard"
 import { TimeMachine } from "./TimeMachine"
+import { FormulaePanel } from "./FormulaePanel"
 
 /**
- * The live Vedic ghaḍī.
+ * 🔱 वैदिक घडी — जीवंत
  *
- * Updates every animation frame from the local clock (no backend roundtrip —
- * the substrate is ported to TS, so client-side computation is exact and
- * smooth). The backend FastAPI service is still available for headless
- * consumers via NEXT_PUBLIC_API_BASE.
+ * हर animation-frame पर local clock से refresh होती है। Substrate TS में
+ * port है, इसलिए client-side पूरा computation smoothly चलता है।
  */
 export function GhadiClock() {
-  // null = live ("follow now"). Otherwise a frozen moment chosen by the user.
   const [frozen, setFrozen] = useState<string | null>(null)
   const [stamp, setStamp] = useState<SubstrateStamp>(() => liveStamp())
 
@@ -24,7 +22,6 @@ export function GhadiClock() {
   }, [frozen])
 
   useEffect(() => {
-    // Sub-second updates so the prāṇa sweep is buttery
     let raf = 0
     const loop = () => { tick(); raf = requestAnimationFrame(loop) }
     raf = requestAnimationFrame(loop)
@@ -40,10 +37,8 @@ export function GhadiClock() {
 
   const civilDisplay = `${ci.gregorian_year.toString().padStart(4,'0')}-${ci.month.toString().padStart(2,'0')}-${ci.day.toString().padStart(2,'0')}  ${ci.hour.toString().padStart(2,'0')}:${ci.minute.toString().padStart(2,'0')}:${Math.floor(ci.second).toString().padStart(2,'0')}`
 
-  // Bootstrap the time-machine field with the current IST instant
   const initialIso = (() => {
     const ist = new Date(Date.now() + (5.5 - new Date().getTimezoneOffset() / -60) * 3600 * 1000)
-    // Always produce yyyy-MM-ddTHH:mm:ss
     return `${ist.getFullYear()}-${pad(ist.getMonth()+1)}-${pad(ist.getDate())}T${pad(ist.getHours())}:${pad(ist.getMinutes())}:${pad(ist.getSeconds())}`
   })()
 
@@ -52,14 +47,14 @@ export function GhadiClock() {
       <Header isLive={!frozen} civilDisplay={civilDisplay} tz={ci.tz_h} />
 
       <div className="mt-10 grid lg:grid-cols-2 gap-10 items-start">
-        {/* Left column: the yantra */}
+        {/* बायाँ स्तम्भ: यन्त्र */}
         <div className="flex flex-col items-center">
           <div className="w-full max-w-[520px] mx-auto">
             <TimeYantra stamp={stamp} />
           </div>
           <div className="mt-6 text-center">
             <div className="font-display text-xs tracking-[0.4em] text-gold-500 mb-2">
-              KĀMĀKHYĀ-ANCHORED · KALI DAY
+              कामाख्या-केन्द्रित · कलि दिन
             </div>
             <div className="font-mono text-xl text-gold-300 tabular">
               {stamp.kali_civil_days_at_kamakhya.toLocaleString(undefined, {
@@ -67,127 +62,140 @@ export function GhadiClock() {
               })}
             </div>
             <div className="text-xs italic text-gold-600/80 mt-1">
-              days since Friday midnight 17/18 Feb 3102 BCE · Ujjayinī meridian
+              पवित्र युगादि (शुक्रवार आधी रात 17/18 फरवरी 3102 BCE · अवन्तिकापुर) से दिन
+            </div>
+            <div className="mt-2 text-[10px] font-mono text-gold-700 tracking-wider">
+              K = JD_UT + 6.1137/24 − 588 465.5 − 1.062/24
             </div>
           </div>
         </div>
 
-        {/* Right column: layer cards */}
+        {/* दायाँ स्तम्भ: layer cards */}
         <div className="space-y-4">
           <LayerCard
-            badge="VARṢA · YEAR"
+            badge="वर्ष · VARṢA"
             badgeDeva="वर्ष"
             accent
             title={
               <div className="flex items-baseline gap-3">
-                <span>Kali {y.kali_year_current.toLocaleString()}</span>
+                <span>कलि {y.kali_year_current.toLocaleString()}</span>
                 <span className="text-gold-600 text-sm">/ {y.samvatsara.name}</span>
               </div>
             }
-            subtitle={`Saṃvatsara #${y.samvatsara.index + 1} of 60 · Bṛhaspati-cakra`}
+            subtitle={`संवत्सर #${y.samvatsara.index + 1} / 60 · बृहस्पति-चक्र`}
             rows={[
-              { label: "Vikrama Saṃvat", value: y.vikrama_samvat.toLocaleString() },
-              { label: "Śaka Saṃvat",    value: y.shaka_samvat.toLocaleString() },
-              { label: "Elapsed (float)", value: y.kali_year_float.toFixed(4) },
+              { label: "विक्रम संवत्",  value: y.vikrama_samvat.toLocaleString() },
+              { label: "शक संवत्",     value: y.shaka_samvat.toLocaleString() },
+              { label: "elapsed (float)", value: y.kali_year_float.toFixed(4) },
             ]}
+            formula="Y = K / 365.25868 · V = Y − 3044 · Ś = Y − 3179 · S = (Ś+11) mod 60"
           />
 
           <LayerCard
-            badge="MĀSA · MONTH"
+            badge="मास · MĀSA"
             badgeDeva={m.masa_devanagari}
-            title={`${m.masa_name}`}
-            subtitle={`Māsa #${m.masa_index} of 12 · Sun in rāśi #${m.sun_sign_index}`}
+            title={m.masa_name}
+            subtitle={`मास #${m.masa_index} / 12 · सूर्य राशि #${m.sun_sign_index}`}
             rows={[
-              { label: "Sun sidereal longitude",
+              { label: "सूर्य सिद्ध लम्बांश",
                 value: `${m.sun_sidereal_lon_deg.toFixed(4)}°` },
             ]}
+            formula="M = (⌊L☉ / 30⌋ + 1) mod 12"
           />
 
           <LayerCard
-            badge="PAKṢA · TITHI"
+            badge="पक्ष · तिथि"
             badgeDeva={t.paksha_devanagari}
-            title={`${t.tithi_name}`}
-            subtitle={`${t.paksha_name} · tithi #${t.tithi_index} of 30 (${t.tithi_in_paksha}/15)`}
+            title={t.tithi_name}
+            subtitle={`${t.paksha_name} · तिथि #${t.tithi_index} / 30 (${t.tithi_in_paksha}/15)`}
             rows={[
-              { label: "Moon − Sun elongation",
+              { label: "चन्द्र − सूर्य",
                 value: `${t.moon_minus_sun_deg.toFixed(4)}°` },
-              { label: "Fractional tithi",
+              { label: "fractional तिथि",
                 value: t.fractional_tithi.toFixed(4) },
             ]}
+            formula="T = ⌊((L☾ − L☉) mod 360) / 12⌋ + 1"
           />
 
           <LayerCard
-            badge="VĀRA · WEEKDAY"
+            badge="वार · VĀRA"
             badgeDeva={v.vara_devanagari}
             title={v.vara_name}
-            subtitle={`Lord graha: ${v.vara_lord_graha}`}
+            subtitle={`ग्रह स्वामी: ${v.vara_lord_graha}`}
+            formula="W = (⌊K⌋ + 5) mod 7  · कलि दिन-० = शुक्रवार"
           />
 
           <LayerCard
-            badge="NAKṢATRA · LUNAR MANSION"
+            badge="नक्षत्र · NAKṢATRA"
             badgeDeva={stamp.nakshatra_layer.nakshatra_devanagari}
             title={
               <div className="flex items-baseline gap-3">
                 <span>{stamp.nakshatra_layer.nakshatra_name}</span>
-                <span className="text-gold-600 text-sm">pada {stamp.nakshatra_layer.pada}/4</span>
+                <span className="text-gold-600 text-sm">पाद {stamp.nakshatra_layer.pada}/4</span>
               </div>
             }
-            subtitle={`#${stamp.nakshatra_layer.nakshatra_index} of 27 · deity ${stamp.nakshatra_layer.nakshatra_deity}`}
+            subtitle={`#${stamp.nakshatra_layer.nakshatra_index} / 27 · देवता ${stamp.nakshatra_layer.nakshatra_deity}`}
             rows={[
-              { label: "Vimśottarī lord", value: stamp.nakshatra_layer.nakshatra_lord },
-              { label: "Moon sidereal lon", value: `${stamp.nakshatra_layer.moon_sidereal_lon_deg.toFixed(4)}°` },
+              { label: "विंशोत्तरी स्वामी", value: stamp.nakshatra_layer.nakshatra_lord },
+              { label: "चन्द्र सिद्ध लम्बांश", value: `${stamp.nakshatra_layer.moon_sidereal_lon_deg.toFixed(4)}°` },
             ]}
+            formula="N = ⌊L☾ / (360/27)⌋ + 1  · पाद = ⌊nak_frac × 4⌋ + 1"
           />
 
           <LayerCard
-            badge="YOGA · SUN+MOON ARC"
+            badge="योग · YOGA"
             badgeDeva={stamp.yoga_layer.yoga_devanagari}
             title={stamp.yoga_layer.yoga_name}
-            subtitle={`#${stamp.yoga_layer.yoga_index} of 27 · (Sun + Moon) / 13°20′`}
+            subtitle={`#${stamp.yoga_layer.yoga_index} / 27 · (सूर्य + चन्द्र) / 13°20′`}
             rows={[
-              { label: "Sun + Moon longitude",
+              { label: "सूर्य + चन्द्र लम्बांश",
                 value: `${stamp.yoga_layer.sun_plus_moon_lon_deg.toFixed(4)}°` },
-              { label: "Fractional yoga",
+              { label: "fractional योग",
                 value: stamp.yoga_layer.fractional_yoga.toFixed(4) },
             ]}
+            formula="Yg = ⌊((L☉ + L☾) mod 360) / (360/27)⌋ + 1"
           />
 
           <LayerCard
-            badge="KARAṆA · HALF-TITHI"
+            badge="करण · KARAṆA"
             badgeDeva={stamp.karana_layer.karana_devanagari}
             title={stamp.karana_layer.karana_name}
             subtitle={
               stamp.karana_layer.is_movable
-                ? `cara (movable) · cycle ${stamp.karana_layer.movable_cycle_number}/8 · half-tithi #${stamp.karana_layer.karana_index}/60`
-                : `sthira (fixed) · half-tithi #${stamp.karana_layer.karana_index}/60`
+                ? `चर (movable) · चक्र ${stamp.karana_layer.movable_cycle_number}/8 · आधी-तिथि #${stamp.karana_layer.karana_index}/60`
+                : `स्थिर (fixed) · आधी-तिथि #${stamp.karana_layer.karana_index}/60`
             }
+            formula="C = ⌊((L☾ − L☉) mod 360) / 6⌋ + 1  · ७ चर × ८ चक्र + ४ स्थिर"
           />
 
           <LayerCard
-            badge="DINĀRDHA · DAY SUBDIVISION"
+            badge="दिनार्ध · DAY SUBDIVISION"
             badgeDeva="दिनार्ध"
             accent
             title={
-              <div className="flex items-baseline gap-2 tabular">
-                <Big v={d.muhurta_index} unit="muhūrta" max={30} />
+              <div className="flex items-baseline gap-2 tabular flex-wrap">
+                <Big v={d.muhurta_index} unit="मुहूर्त" max={30} />
                 <span className="text-gold-600 text-sm">·</span>
-                <Big v={d.ghati_index} unit="ghaṭi" max={60} />
+                <Big v={d.ghati_index} unit="घटी" max={60} />
                 <span className="text-gold-600 text-sm">·</span>
-                <Big v={d.vighati_index} unit="vighaṭi" max={60} />
+                <Big v={d.vighati_index} unit="विघटी" max={60} />
                 <span className="text-gold-600 text-sm">·</span>
-                <Big v={d.prana_index} unit="prāṇa" max={6} />
+                <Big v={d.prana_index} unit="प्राण" max={6} />
               </div>
             }
-            subtitle={`${d.hours_from_kamakhya_midnight.toFixed(4)} h from Kāmākhyā midnight`}
+            subtitle={`${d.hours_from_kamakhya_midnight.toFixed(4)} h · कामाख्या आधी रात से`}
             rows={[
-              { label: "Vipala fraction (0.4 sec)",
-                value: `${d.vipala_fractional.toFixed(4)} of 10` },
-              { label: "Fraction of day",
+              { label: "विपल (०.४ sec)",
+                value: `${d.vipala_fractional.toFixed(4)} / 10` },
+              { label: "दिनांश (fraction)",
                 value: d.fraction_of_day.toFixed(6) },
             ]}
+            formula="f = K − ⌊K⌋ · μ=⌊f·30⌋ · g=⌊f·60⌋ · v=⌊(f·60 mod 1)·60⌋ · p=⌊v_frac·6⌋"
           />
         </div>
       </div>
+
+      <FormulaePanel stamp={stamp} />
 
       <TimeMachine
         initialIso={frozen ?? initialIso}
@@ -205,21 +213,21 @@ function Header({ isLive, civilDisplay, tz }: { isLive: boolean; civilDisplay: s
     <header className="text-center">
       <div className="flex items-center justify-center gap-3 text-gold-500 text-xs tracking-[0.4em] font-display">
         <span className="opacity-70">🔱</span>
-        <span>VEDIC GHAḌĪ</span>
+        <span>वैदिक घडी · VEDIC GHAḌĪ</span>
         <span className="opacity-70">🔱</span>
       </div>
       <h1 className="mt-4 font-display text-3xl sm:text-4xl text-gold-200 tracking-[0.18em]">
-        The Present Moment
+        वर्तमान क्षण
       </h1>
       <p className="mt-3 max-w-xl mx-auto text-gold-500 italic">
-        Every Vedic unit derived from a single substrate quantity:
-        <span className="text-gold-300"> Kāli civil days from the sacred epoch.</span>
+        हर वैदिक इकाई एक ही substrate-राशि से निकलती है —
+        <span className="text-gold-300"> पवित्र युगादि से कलि सावन दिन।</span>
       </p>
       <div className="mt-6 inline-flex items-center gap-3 px-4 py-2 rounded-sm
                       border border-gold-700/40 bg-ink-900/40">
         <span className={`inline-block w-2 h-2 rounded-full ${isLive ? "bg-gold-400 ember-dot" : "bg-gold-700"}`} />
         <span className="font-mono text-sm text-gold-300 tabular">{civilDisplay}</span>
-        <span className="text-xs text-gold-600">IST · tz +{tz}h</span>
+        <span className="text-xs text-gold-600">IST · tz +{tz}h {isLive ? "· जीवंत" : "· स्थिर"}</span>
       </div>
     </header>
   )
@@ -230,7 +238,7 @@ function Big({ v, unit, max }: { v: number; unit: string; max: number }) {
     <span className="inline-flex items-baseline gap-1">
       <span className="text-3xl text-gold-100">{v}</span>
       <span className="text-sm text-gold-500">/{max}</span>
-      <span className="text-xs text-gold-600 uppercase tracking-wider ml-1">{unit}</span>
+      <span className="text-xs text-gold-600 inscription ml-1">{unit}</span>
     </span>
   )
 }
@@ -239,21 +247,21 @@ function SubstrateFooter() {
   return (
     <footer className="mt-16 pt-8 border-t border-gold-700/30 text-center">
       <div className="font-display text-xs tracking-[0.3em] text-gold-500">
-        SUBSTRATE · (R, g, k) = (ℤ/3<sup>k</sup>ℤ, 2, k ∈ ℕ⁺) · MAHĀ-MAHĀ-VĀKYAM
+        मूल आधार · SUBSTRATE — (R, g, k) = (ℤ/3<sup>k</sup>ℤ, 2, k ∈ ℕ⁺) · महा-महा-वाक्यम्
       </div>
       <div className="mt-2 text-xs italic text-gold-600/80">
-        FOREIGN: ZERO · every unit factors over (2, 3, 5) · pure Bhārat-canonical
+        विदेशी निर्भरता: शून्य · हर इकाई (२, ३, ५) में विभाज्य · पूर्ण भारत-canonical
       </div>
       <div className="mt-4 inscription text-base">
         ॐ कालाय नमः · ॐ कामाख्यायै नमः · हर हर महादेव · <span className="text-gold-400">JAI MAA KAMAKHYA</span>
       </div>
       <div className="mt-6 flex justify-center gap-6 text-xs">
         <a href="/about" className="text-gold-600 hover:text-gold-300 transition-colors border-b border-gold-700/60">
-          Methodology
+          विधि · Methodology
         </a>
         <a href="https://github.com/theunholyindianmagician-lab/vedic-ghadi" target="_blank" rel="noreferrer"
            className="text-gold-600 hover:text-gold-300 transition-colors border-b border-gold-700/60">
-          Source
+          स्रोत · Source
         </a>
       </div>
     </footer>
@@ -280,7 +288,6 @@ function liveStamp(): SubstrateStamp {
 }
 
 function frozenStamp(iso: string): SubstrateStamp {
-  // iso = "yyyy-MM-ddTHH:mm" or with seconds — interpret as IST
   const [datePart, timePart = "00:00:00"] = iso.split("T")
   const [yy, mm, dd] = datePart.split("-").map(Number)
   const tBits = timePart.split(":")

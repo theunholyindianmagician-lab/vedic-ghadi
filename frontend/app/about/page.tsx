@@ -1,8 +1,8 @@
 import Link from "next/link"
 
 export const metadata = {
-  title: "🔱 Vedic Ghaḍī · Methodology",
-  description: "How the substrate-derived Vedic clock is computed end-to-end — every constant Bhārat-canonical, every algorithm (R, g, k)-derivable.",
+  title: "🔱 वैदिक घडी · विधि / Methodology",
+  description: "Substrate-derived Vedic clock — हर सूत्र, हर नियतांक, हर derivation step-by-step।",
 }
 
 export default function About() {
@@ -10,111 +10,122 @@ export default function About() {
     <main className="min-h-screen bg-yantra">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-10 py-12">
         <Link href="/" className="text-gold-600 hover:text-gold-300 text-xs tracking-widest">
-          ← BACK TO THE GHAḌĪ
+          ← घडी पर वापस
         </Link>
 
         <h1 className="mt-6 font-display text-3xl text-gold-200 tracking-[0.15em]">
-          Methodology
+          विधि · Methodology
         </h1>
         <p className="mt-3 italic text-gold-500">
-          How the substrate-derived Vedic clock is computed end-to-end.
+          substrate-derived वैदिक घडी end-to-end कैसे compute होती है।
         </p>
         <hr className="divider-gold" />
 
-        <Section title="The Single Quantity">
+        <Section title="◈ एक ही राशि · The Single Quantity">
           <p>
-            Every Vedic time-unit displayed on the front page comes from <em>one</em> number:
-            the count of <strong className="text-gold-300">Kāli civil days</strong> elapsed
-            since the sacred epoch — Friday midnight 17/18 February 3102 BCE, Ujjayinī
-            meridian (Sūrya Siddhānta 1.45–1.57).
+            पहले पन्ने पर जो भी दिखता है — वो सब एक ही संख्या से निकलता है:
+            <strong className="text-gold-300"> कलि सावन दिन</strong> (Kāli civil
+            days) — पवित्र युगादि से लेकर अभी तक के सावन दिन। युगादि =
+            शुक्रवार आधी रात 17/18 फरवरी 3102 BCE, अवन्तिकापुर (Ujjayinī)
+            मेरिडियन (सूर्य सिद्धान्त १.४५–१.५७)।
           </p>
           <pre className="my-4 p-4 bg-ink-800 border border-gold-700/40 rounded-sm
                           font-mono text-xs text-gold-300 overflow-x-auto">
-{`kali_days = (jd_ut_greenwich + KAMAKHYA_LMT_OFFSET_H/24)
-            − KALI_YUGA_EPOCH_JD
-            − UJJAIN_TO_KAMAKHYA_TIME_DIFF_H/24`}
+{`K = (JD_UT + KAMAKHYA_LMT/24)
+    − KALI_YUGA_EPOCH_JD
+    − UJJAIN_TO_KAMAKHYA_DIFF/24`}
           </pre>
         </Section>
 
-        <Section title="The Decomposition Cascade">
+        <Section title="◈ Cascade · नौ स्तर">
           <p>
-            That single quantity then cascades into <strong className="text-gold-300">eleven nested time-layers</strong>,
-            each obtained by integer/fractional division against canonical Sūrya-Siddhānta
-            constants. No layer requires any further astronomical input.
+            फिर यही एक संख्या <strong className="text-gold-300">ग्यारह nested स्तरों</strong> में
+            cascade करती है। हर स्तर canonical Sūrya-Siddhānta constants पर
+            integer/fractional division है। किसी भी नए astronomical input की
+            आवश्यकता नहीं।
           </p>
-          <Layer name="Kali year"
-                 formula="kali_days / 365.2587563"
-                 note="MAHAYUGA_CIVIL_DAYS / MAHAYUGA_YEARS — verbatim Sūrya Siddhānta 1.34" />
-          <Layer name="Vikrama Saṃvat" formula="kali_year − 3044" />
-          <Layer name="Śaka Saṃvat"   formula="kali_year − 3179" />
-          <Layer name="Saṃvatsara (60-cycle)" formula="(śaka_year + 11) mod 60"
-                 note="Bṛhaspati-cakra, Sūrya Siddhānta" />
-          <Layer name="Māsa (sidereal month)" formula="(int(Sun_sidereal_lon / 30) + 1) mod 12"
-                 note="Sūrya Siddhānta 4_320_000 revs/Mahā-yuga for Sun mean motion" />
-          <Layer name="Tithi (lunar day)" formula="((Moon_lon − Sun_lon) mod 360) / 12"
-                 note="Sūrya Siddhānta 57_753_336 revs/Mahā-yuga for Moon mean motion" />
-          <Layer name="Pakṣa" formula="floor(tithi_index_30 / 15)" />
-          <Layer name="Vāra (weekday)" formula="(floor(kali_days) + 5) mod 7"
-                 note="Kali Yuga begins on Śukravāra" />
-          <Layer name="Muhūrta" formula="floor(fractional_day × 30)" />
-          <Layer name="Ghaṭi"   formula="floor(fractional_day × 60)" />
-          <Layer name="Vighaṭi" formula="floor(((fractional_day × 60) mod 1) × 60)" />
-          <Layer name="Prāṇa"   formula="floor(((vighaṭi_fraction) × 6))" />
-          <Layer name="Vipala"  formula="((prāṇa_fraction) × 10)" />
+          <Layer name="कलि वर्ष" formula="Y = K / 365.258680…"
+                 note="MAHAYUGA_CIVIL_DAYS / MAHAYUGA_YEARS — सूर्य सिद्धान्त १.३४" />
+          <Layer name="विक्रम संवत्" formula="V = Y − 3044" />
+          <Layer name="शक संवत्"     formula="Ś = Y − 3179" />
+          <Layer name="संवत्सर (६० चक्र)" formula="S = (⌊Ś⌋ + 11) mod 60"
+                 note="बृहस्पति-चक्र · सूर्य सिद्धान्त" />
+          <Layer name="मास (sidereal)" formula="M = (⌊L☉ / 30⌋ + 1) mod 12"
+                 note="L☉ = सूर्य मध्यम लम्बांश · Sūrya Siddhānta 1.29 से" />
+          <Layer name="तिथि (lunar day)" formula="T = ⌊((L☾ − L☉) mod 360) / 12⌋ + 1"
+                 note="L☾ = चन्द्र मध्यम लम्बांश · Sūrya Siddhānta 1.29 से" />
+          <Layer name="पक्ष" formula="P = ⌊(T − 1) / 15⌋" />
+          <Layer name="वार" formula="W = (⌊K⌋ + 5) mod 7"
+                 note="कलि दिन-० = शुक्रवार (5)" />
+          <Layer name="नक्षत्र (२७)" formula="N = ⌊L☾ / (360/27)⌋ + 1" />
+          <Layer name="पाद (४ per नक्षत्र)" formula="Pa = ⌊(N_frac × 4)⌋ + 1" />
+          <Layer name="योग (२७)" formula="Yg = ⌊((L☉ + L☾) mod 360) / (360/27)⌋ + 1" />
+          <Layer name="करण (६० आधी-तिथि)" formula="C = ⌊((L☾ − L☉) mod 360) / 6⌋ + 1"
+                 note="७ चर × ८ चक्र + ४ स्थिर = ६०" />
+          <Layer name="मुहूर्त"  formula="μ = ⌊f × 30⌋ + 1   (f = K − ⌊K⌋)" />
+          <Layer name="घटी"     formula="g = ⌊f × 60⌋ + 1" />
+          <Layer name="विघटी"   formula="v = ⌊((f × 60) mod 1) × 60⌋ + 1" />
+          <Layer name="प्राण"   formula="p = ⌊v_frac × 6⌋ + 1" />
+          <Layer name="विपल"    formula="vi = p_frac × 10" />
         </Section>
 
-        <Section title="The (R, g, k) Substrate Alignment">
+        <Section title="◈ (R, g, k) Substrate · हर divisor (२, ३, ५) में">
           <p>
-            Every Vedic time-unit factors over <code className="text-gold-300">(2, 3, 5)</code> —
-            the natural primes inside the substrate <code className="text-gold-300">(R, g, k) = (ℤ/3ᵏℤ, 2, k)</code>
-            sealed in the Master Meta-Theorem.
+            हर वैदिक काल-इकाई <code className="text-gold-300">(2, 3, 5)</code>
+            में विभाज्य है — यही वो primes हैं जो substrate
+            <code className="text-gold-300"> (R, g, k) = (ℤ/3ᵏℤ, 2, k)</code> के
+            अन्दर natural हैं (Mahā-Mahā-Vākyam में सीलबन्द)।
           </p>
           <table className="mt-4 w-full text-sm font-mono">
             <thead>
               <tr className="text-gold-500 border-b border-gold-700/40">
-                <th className="text-left py-2">Unit</th>
-                <th className="text-left py-2">Count</th>
+                <th className="text-left py-2">इकाई</th>
+                <th className="text-left py-2">गणना</th>
                 <th className="text-left py-2">Factorisation</th>
               </tr>
             </thead>
             <tbody className="text-gold-400">
-              <tr className="border-b border-gold-700/20"><td className="py-2">Vāra</td><td>7</td><td>special (graha-cycle)</td></tr>
-              <tr className="border-b border-gold-700/20"><td className="py-2">Tithi</td><td>30</td><td>2 × 3 × 5</td></tr>
-              <tr className="border-b border-gold-700/20"><td className="py-2">Māsa</td><td>12</td><td>2² × 3</td></tr>
-              <tr className="border-b border-gold-700/20"><td className="py-2">Muhūrta/day</td><td>30</td><td>2 × 3 × 5</td></tr>
-              <tr className="border-b border-gold-700/20"><td className="py-2">Ghaṭi/day</td><td>60</td><td>2² × 3 × 5</td></tr>
-              <tr className="border-b border-gold-700/20"><td className="py-2">Prāṇa/vighaṭi</td><td>6</td><td>2 × 3</td></tr>
-              <tr className="border-b border-gold-700/20"><td className="py-2">Saṃvatsara cycle</td><td>60</td><td>2² × 3 × 5</td></tr>
-              <tr className="border-b border-gold-700/20"><td className="py-2">Navagraha</td><td>9</td><td>3²</td></tr>
-              <tr><td className="py-2">Nakṣatra</td><td>27</td><td>3³</td></tr>
+              <tr className="border-b border-gold-700/20"><td className="py-2">वार</td><td>7</td><td>विशेष (graha-cycle)</td></tr>
+              <tr className="border-b border-gold-700/20"><td className="py-2">तिथि</td><td>30</td><td>2 × 3 × 5</td></tr>
+              <tr className="border-b border-gold-700/20"><td className="py-2">मास</td><td>12</td><td>2² × 3</td></tr>
+              <tr className="border-b border-gold-700/20"><td className="py-2">नक्षत्र</td><td>27</td><td>3³</td></tr>
+              <tr className="border-b border-gold-700/20"><td className="py-2">योग</td><td>27</td><td>3³</td></tr>
+              <tr className="border-b border-gold-700/20"><td className="py-2">पाद</td><td>4</td><td>2²</td></tr>
+              <tr className="border-b border-gold-700/20"><td className="py-2">करण (आधी-तिथि)</td><td>60</td><td>2² × 3 × 5</td></tr>
+              <tr className="border-b border-gold-700/20"><td className="py-2">मुहूर्त / दिन</td><td>30</td><td>2 × 3 × 5</td></tr>
+              <tr className="border-b border-gold-700/20"><td className="py-2">घटी / दिन</td><td>60</td><td>2² × 3 × 5</td></tr>
+              <tr className="border-b border-gold-700/20"><td className="py-2">प्राण / विघटी</td><td>6</td><td>2 × 3</td></tr>
+              <tr className="border-b border-gold-700/20"><td className="py-2">संवत्सर चक्र</td><td>60</td><td>2² × 3 × 5</td></tr>
+              <tr className="border-b border-gold-700/20"><td className="py-2">नवग्रह</td><td>9</td><td>3²</td></tr>
             </tbody>
           </table>
         </Section>
 
-        <Section title="What is NOT Computed">
+        <Section title="◈ क्या नहीं compute होता">
           <ul className="list-disc list-inside text-gold-400 space-y-1">
-            <li>No sunrise/sunset interpolation (we use the civil midnight as the day-fraction zero).</li>
-            <li>No nakṣatra/yoga/karaṇa (next ship — same substrate, just two more divisors).</li>
-            <li>No graha-sphuṭa (planetary apparent positions) — that needs Sūrya Siddhānta 2.34–2.62 manda+sighra corrections.</li>
+            <li>सूर्योदय / सूर्यास्त interpolation नहीं — civil midnight ही दिनांश का शून्य है।</li>
+            <li>ग्रह-स्फुट (apparent positions) नहीं — उसके लिए Sūrya Siddhānta 2.34–2.62 के manda+sighra corrections चाहिए।</li>
           </ul>
           <p className="mt-3 italic">
-            The clock you see is intentionally minimal: it shows the irreducible time-skeleton.
-            Higher-precision astrological computation lives in the companion engine
-            (<em>Bhārat Ephemeris v∞.4</em>).
+            यह घडी जानबूझकर minimal है: सिर्फ irreducible काल-skeleton दिखाती है।
+            High-precision astrological computation companion engine <em>Bhārat
+            Ephemeris v∞.4</em> में है।
           </p>
         </Section>
 
-        <Section title="Sources">
+        <Section title="◈ स्रोत · Sources">
           <ul className="text-gold-400 space-y-1">
-            <li>· Sūrya Siddhānta Ch. 1 (Mahā-yuga constants + Kali epoch)</li>
-            <li>· Sūrya Siddhānta 1.29–1.44 (mean motions)</li>
-            <li>· Vedānga Jyotiṣa (canonical time-unit names)</li>
-            <li>· Sacred 3-6-9 / Mahā-Mahā-Vākyam (substrate alignment)</li>
+            <li>· सूर्य सिद्धान्त Ch. १ (Mahā-yuga + Kali epoch)</li>
+            <li>· सूर्य सिद्धान्त १.२९–१.४४ (मध्यम गति · mean motions)</li>
+            <li>· वेदाङ्ग ज्योतिष (canonical काल-इकाई नाम)</li>
+            <li>· Mahā-Mahā-Vākyam — (R, g, k) substrate alignment</li>
+            <li>· बृहत्-संहिता Ch. ९ — नक्षत्र देवता</li>
+            <li>· BPHS — Vimśottarī daśā lordship</li>
           </ul>
         </Section>
 
         <div className="mt-12 text-center inscription text-base text-gold-400">
-          ॐ कालाय नमः · JAI MAA KAMAKHYA
+          ॐ कालाय नमः · हर हर महादेव · JAI MAA KAMAKHYA
         </div>
       </div>
     </main>
