@@ -157,9 +157,10 @@ function YearFormulae({ K, stamp }: { K: number; stamp: SubstrateStamp }) {
       <Formula
         label="Kali वर्ष"
         deva="कलि वर्ष"
-        formula="Y = K / KALI_DAYS_PER_YEAR"
+        formula="Y = K / KALI_DAYS_PER_YEAR    ·    ⌊Y⌋ = elapsed Kali years"
         substitution={`${K.toLocaleString(undefined, {maximumFractionDigits: 4})} / 365.258680…`}
-        result={`Y = ${y.kali_year_float.toFixed(4)}  →  वर्तमान कलि वर्ष = ${y.kali_year_current.toLocaleString()}`}
+        result={`Y = ${y.kali_year_float.toFixed(4)}  →  कलि वर्ष = ${y.kali_year_current.toLocaleString()} (बीत चुके)`}
+        note="ELAPSED convention — Vikrama/Śaka से consistent · हर public almanac यही convention follow करता है"
       />
       <Formula label="विक्रम संवत्" deva="विक्रम"
         formula="V = Y − 3044"
@@ -185,12 +186,14 @@ function MonthTithiFormulae({ sunLon, moonLon, elong, stamp }: {
     <Section title="◈ मास · पक्ष · तिथि" subtitle="सूर्य-चन्द्र मध्यम लम्बांश से">
       <Formula label="Sun मध्यम लम्बांश" deva="रवि-सूर्य"
         formula="L☉ = (4 320 000 × 360 / 1 577 917 500) × K  mod 360"
-        substitution="0.985647°/day × K  mod 360"
-        result={`L☉ = ${sunLon.toFixed(4)}°`} />
+        substitution="= (207 360 / 210 389) × K  mod 360 = 0.9856028595°/day × K  mod 360"
+        result={`L☉ = ${sunLon.toFixed(4)}°`}
+        note="Sūrya Siddhānta 1.29 — रवि revolutions per Mahā-yuga = 4 320 000 · exact ratio 207 360/210 389 used in code (no truncation)" />
       <Formula label="Moon मध्यम लम्बांश" deva="चन्द्र"
         formula="L☾ = (57 753 336 × 360 / 1 577 917 500) × K  mod 360"
-        substitution="13.176°/day × K  mod 360"
-        result={`L☾ = ${moonLon.toFixed(4)}°`} />
+        substitution="= (5 680 656 / 431 125) × K  mod 360 = 13.1763548855°/day × K  mod 360"
+        result={`L☾ = ${moonLon.toFixed(4)}°`}
+        note="Sūrya Siddhānta 1.29 — चन्द्र revolutions per Mahā-yuga = 57 753 336 · exact ratio 5 680 656/431 125 used in code (no truncation)" />
       <Formula label="मास (sidereal)" deva={m.masa_devanagari}
         formula="M = (⌊L☉ / 30⌋ + 1) mod 12"
         substitution={`(⌊${sunLon.toFixed(2)} / 30⌋ + 1) mod 12`}

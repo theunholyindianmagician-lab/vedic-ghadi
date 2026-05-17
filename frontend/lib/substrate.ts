@@ -338,7 +338,9 @@ export function kalaSubstrateStamp(
     year_layer: {
       kali_year_float: Math.round(kaliYearFloat * 1e6) / 1e6,
       kali_year_completed: kaliYearInt,
-      kali_year_current: kaliYearInt + 1,
+      // ELAPSED-years convention — matches Vikrama/Śaka math AND every
+      // public Indian almanac. Was off-by-one before audit fix 2026-05-17.
+      kali_year_current: kaliYearInt,
       vikrama_samvat: Math.floor(vikramaYear(kaliYearFloat)),
       shaka_samvat: Math.floor(shakaYear(kaliYearFloat)),
       samvatsara: samvatsaraAtKaliYear(kaliYearFloat),

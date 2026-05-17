@@ -68,6 +68,24 @@ def test_samvatsara_at_anchor():
     assert sv["index"] == 39   # 0-based
 
 
+def test_year_layer_uses_elapsed_convention():
+    """Kali, Vikrama, Śaka must all use floor() — the ELAPSED-years convention.
+
+    This anchors the off-by-one fix from the 2026-05-17 audit. Public
+    almanacs (Drik Panchang etc.) all use elapsed counts: Kali 5127 for
+    May 2026, Vikrama 2083, Śaka 1948.
+    """
+    stamp = ghadi_at(2026, 5, 17, 16, 0, 0, 5.5)
+    y = stamp["year_layer"]
+    assert y["kali_year_current"] == 5127, "Kali year (current) must match public almanac"
+    assert y["kali_year_completed"] == 5127
+    assert y["vikrama_samvat"] == 2083
+    assert y["shaka_samvat"] == 1948
+    # The three must follow the same algebraic relation:
+    assert y["vikrama_samvat"] == y["kali_year_current"] - 3044
+    assert y["shaka_samvat"]   == y["kali_year_current"] - 3179
+
+
 # ──────────────────────────────────────────────────────────────────────────
 # Vāra — Kali Yuga begins on Śukravāra, so day-0 must be Friday
 # ──────────────────────────────────────────────────────────────────────────

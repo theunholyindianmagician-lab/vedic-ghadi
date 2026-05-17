@@ -352,7 +352,10 @@ def kala_substrate_stamp(
         "year_layer": {
             "kali_year_float": round(kali_year_float, 6),
             "kali_year_completed": kali_year_int,
-            "kali_year_current": kali_year_int + 1,
+            # ELAPSED-years convention — matches Vikrama/Śaka math AND every
+            # public Indian almanac. (Previously the code did +1 which was
+            # an inconsistency caught by the deep-formulae audit 2026-05-17.)
+            "kali_year_current": kali_year_int,
             "vikrama_samvat": int(math.floor(vikrama_year(kali_year_float))),
             "shaka_samvat":   int(math.floor(shaka_year(kali_year_float))),
             "samvatsara": samvatsara_at_kali_year(kali_year_float),
