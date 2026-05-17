@@ -107,10 +107,10 @@ export function GhadiClock() {
       <Header isLive={!frozen} civilDisplay={civilDisplay} tz={ci.tz_h} />
 
       <div className="mt-10 grid lg:grid-cols-2 gap-10 items-start">
-        {/* बायाँ स्तम्भ: यन्त्र */}
+        {/* बायाँ स्तम्भ: 3D दिएक्ल — Vedic + Western, 50+ live complications, ticks every RAF */}
         <div className="flex flex-col items-center">
-          <div className="w-full max-w-[520px] mx-auto">
-            <TimeYantra stamp={stamp} />
+          <div className="w-full max-w-[560px] mx-auto">
+            <Sphota3DDial stamp={stamp} activeMeridianId="kamakhya" size={520} />
           </div>
           <div className="mt-6 text-center">
             <div className="font-display text-xs tracking-[0.4em] text-gold-500 mb-2">
@@ -272,9 +272,11 @@ function Header({ isLive, civilDisplay, tz }: { isLive: boolean; civilDisplay: s
 
 // Big helper removed — moved to MeridianComparison.tsx
 
-/** Toggle: 3D DIAL (default) · 2D sunburst · 3D Three.js (broken) · pure-SVG iso */
+/** Alternate visualizations BELOW the hero dial · 2D sunburst (default) · ISO · Three.js */
 function SphotaVisualization({ stamp }: { stamp: SubstrateStamp }) {
-  const [mode, setMode] = useState<"dial" | "2d" | "3d" | "iso">("dial")
+  // Default is 2D — the hero already shows the full Sphota3DDial; this section
+  // offers complementary views (sunburst layout · iso projection · Three.js).
+  const [mode, setMode] = useState<"dial" | "2d" | "3d" | "iso">("2d")
   const btnCls = (active: boolean, accent: string) => [
     "px-4 py-2 font-display tracking-wider text-xs transition-colors",
     active ? accent : "text-gold-500 hover:text-gold-300",

@@ -121,44 +121,53 @@ test.describe("Vedic Ghaḍī live UI", () => {
     await page.locator('button:has-text("3D यन्त्र-घटिका")').first().click()
   })
 
-  test("10a · 3D DIAL is default + 60-ghaṭi Aditi ring + K readout", async ({ page }) => {
-    // Dial mode should be the new default (no click needed)
-    const dial = page.locator('[data-component="sphota-3d-dial"]')
+  test("10a · 3D DIAL hero + Vedic + Western complications", async ({ page }) => {
+    // Dial is now in the HERO position — first thing visible after the layer cards load
+    const dial = page.locator('[data-component="sphota-3d-dial"]').first()
     await expect(dial).toBeVisible({ timeout: 15_000 })
 
-    // 60 ghaṭi tick marks on the Aditi outer rotor
-    const ghatiTicks = page.locator('svg [data-tick="ghati-aditi"]')
+    // VEDIC rings — scope all queries to the hero dial so duplicate dials don't double-count
+    const ghatiTicks = dial.locator('[data-tick="ghati-aditi"]')
     await expect(ghatiTicks).toHaveCount(60)
 
-    // 27 nakṣatra segments
-    const naksWedges = page.locator('svg [data-tick="nakshatra"]')
+    const naksWedges = dial.locator('[data-tick="nakshatra"]')
     await expect(naksWedges).toHaveCount(27)
 
-    // 30 tithi wedges
-    const tithiWedges = page.locator('svg [data-tick="tithi"]')
+    const tithiWedges = dial.locator('[data-tick="tithi"]')
     await expect(tithiWedges).toHaveCount(30)
 
-    // K digital readout with 6-decimal precision
-    const kReadout = page.locator('[data-readout="k"]').first()
+    const rashiWedges = dial.locator('[data-tick="rashi"]')
+    await expect(rashiWedges).toHaveCount(12)
+
+    const horaWedges = dial.locator('[data-tick="hora"]')
+    await expect(horaWedges).toHaveCount(24)
+
+    // WESTERN bezel — 60 minute ticks + 12 hour numerals
+    const westMin = dial.locator('[data-tick="western-minute"]')
+    await expect(westMin).toHaveCount(60)
+    const westHour = dial.locator('[data-tick="western-hour"]')
+    await expect(westHour).toHaveCount(12)
+
+    // WESTERN hands — H/M/S needles
+    await expect(dial.locator('[data-needle="western-hour"]')).toBeVisible()
+    await expect(dial.locator('[data-needle="western-minute"]')).toBeVisible()
+    await expect(dial.locator('[data-needle="western-second"]')).toBeVisible()
+
+    // Digital readouts
+    const kReadout = dial.locator('[data-readout="k"]')
     await expect(kReadout).toBeVisible()
-    const kText = (await kReadout.innerText()).trim()
-    expect(kText).toMatch(/^\d[\d,]*\.\d{6}$/)
+    expect((await kReadout.innerText()).trim()).toMatch(/^\d[\d,]*\.\d{6}$/)
 
-    // Pakṣa label (śukla or kṛṣṇa)
-    const paksha = page.locator('[data-readout="paksha"]').first()
-    await expect(paksha).toContainText(/(शुक्ल|कृष्ण)-पक्ष/)
+    await expect(dial.locator('[data-readout="paksha"]')).toContainText(/(शुक्ल|कृष्ण)-पक्ष/)
+    await expect(dial.locator('[data-readout="vara-lord"]')).toContainText(/-वार/)
+    await expect(dial.locator('[data-readout="samvatsara-name"]')).toContainText("Parābhava")
+    await expect(dial.locator('[data-readout="kali-year"]')).toContainText("5,127")
 
-    // Vāra-lord planet readout
-    const varaLord = page.locator('[data-readout="vara-lord"]').first()
-    await expect(varaLord).toContainText(/-वार/)
-
-    // Saṃvatsara name (currently Parābhava per the public almanac)
-    const samv = page.locator('[data-readout="samvatsara-name"]').first()
-    await expect(samv).toContainText("Parābhava")
-
-    // Kali year readout
-    const kaliYear = page.locator('[data-readout="kali-year"]').first()
-    await expect(kaliYear).toContainText("5,127")
+    // Western civil digital readouts
+    await expect(dial.locator('[data-readout="date"]')).toContainText(/\d{2} [A-Z]{3} \d{4}/)
+    await expect(dial.locator('[data-readout="dow"]')).toContainText(/^(SUN|MON|TUE|WED|THU|FRI|SAT)$/)
+    await expect(dial.locator('[data-readout="ampm"]')).toContainText(/(AM|PM)/)
+    await expect(dial.locator('[data-readout="civil-time"]')).toContainText(/\d{2}:\d{2}:\d{2}/)
   })
 
   test("10b · ISO mode renders 504 SVG cells (pure-SVG fallback)", async ({ page }) => {
