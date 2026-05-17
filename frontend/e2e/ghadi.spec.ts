@@ -165,7 +165,8 @@ test.describe("Vedic Ghaḍī live UI", () => {
 
     // Western civil digital readouts
     await expect(dial.locator('[data-readout="date"]')).toContainText(/\d{2} [A-Z]{3} \d{4}/)
-    await expect(dial.locator('[data-readout="dow"]')).toContainText(/^(SUN|MON|TUE|WED|THU|FRI|SAT)$/)
+    // `dow` badge wraps label + value, so innerText is e.g. "DAYMON" — match anywhere
+    await expect(dial.locator('[data-readout="dow"]')).toContainText(/(SUN|MON|TUE|WED|THU|FRI|SAT)/)
     await expect(dial.locator('[data-readout="ampm"]')).toContainText(/(AM|PM)/)
     await expect(dial.locator('[data-readout="civil-time"]')).toContainText(/\d{2}:\d{2}:\d{2}/)
   })
