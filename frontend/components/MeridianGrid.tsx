@@ -159,9 +159,16 @@ export function MeridianGrid({ stamp }: { stamp: SubstrateStamp }) {
       )}
 
       <footer className="px-6 py-3 border-t border-gold-700/40 text-center text-xs text-gold-600/80">
-        84 meridians × 2 poles × 3 Trimūrti = <span className="text-gold-300">504 sphoṭas</span> ·&nbsp;
-        APEX v5 Bipolar × Trimūrti discipline ·&nbsp;
-        Pisano-of-Ideal=3 · Liberation triples · Death increments by 1
+        <div>
+          84 meridians × 2 poles × 3 Trimūrti = <span className="text-gold-300">504 cells</span>,
+          each with full pañcāṅga (नक्षत्र · पाद · योग · करण at its K<sub>shifted</sub>)
+        </div>
+        <div className="mt-1 text-[10px]">
+          claim-space: 504 × 27 = <span className="text-gold-400">13,608</span> ·
+          504 × 108 = <span className="text-gold-400">54,432</span> ·
+          full lattice 504 × 27 × 4 × 27 × 60 = <span className="text-gold-400">88,179,840</span>
+          &nbsp;sphoṭas · APEX v5 saptamukhi cannon
+        </div>
       </footer>
     </section>
   )
@@ -243,6 +250,7 @@ function Header({ pole }: { pole: Pole }) {
           <span className="text-amber-200">DITI · दिति</span>
           <span className="block text-[9px] text-amber-300/60 normal-case">(3) · 10/20/2 · 10.8s</span>
         </th>
+        <th rowSpan={2} className="text-right px-4 py-2 align-bottom">नक्षत्र / पाद</th>
       </tr>
     )
   }
@@ -255,7 +263,8 @@ function Header({ pole }: { pole: Pole }) {
       <th className="text-center px-2 py-2">वार</th>
       <th className="text-right px-2 py-2">घटी</th>
       <th className="text-right px-2 py-2">मुहूर्त</th>
-      <th className="text-right px-4 py-2">प्राण</th>
+      <th className="text-right px-2 py-2">प्राण</th>
+      <th className="text-right px-4 py-2">नक्षत्र / पाद</th>
     </tr>
   )
 }
@@ -274,7 +283,7 @@ function CategoryGroup({
   trimurti: Trimurti
 }) {
   const showing = rows.length
-  const colSpan = pole === "both" ? 10 : 8
+  const colSpan = pole === "both" ? 11 : 9
   return (
     <>
       <tr className="bg-amber-deep/40 border-y border-gold-700/40 cursor-pointer hover:bg-amber-deep/60"
@@ -338,6 +347,7 @@ function MeridianRow({
   )
 
   if (pole === "both") {
+    const n = m.trimurti.aditi[trimurti].nakshatra
     return (
       <tr className={rowCls}>
         {cityCol}
@@ -350,6 +360,12 @@ function MeridianRow({
         {varaCell}
         <PoleCells d={m.trimurti.aditi[trimurti].day_subdivision} tone="aditi" />
         <PoleCells d={m.trimurti.diti[trimurti].day_subdivision} tone="diti" />
+        <td className="px-4 py-2 text-right">
+          <div className="flex items-center justify-end gap-1.5">
+            <span className="inscription text-xs text-gold-400">{n.nakshatra_devanagari}</span>
+            <span className="text-[10px] font-mono text-gold-600 tabular">pa{n.pada}</span>
+          </div>
+        </td>
       </tr>
     )
   }
@@ -357,6 +373,7 @@ function MeridianRow({
   // Pull from Trimurti × Pole matrix (504 sphoṭa cell)
   const view = m.trimurti[pole][trimurti]
   const d = view.day_subdivision
+  const n = view.nakshatra
   const ghatiMax = pole === "diti" ? 20 : 60
   const muhurtaMax = pole === "diti" ? 10 : 30
   const pranaMax = pole === "diti" ? 2 : 6
@@ -382,8 +399,15 @@ function MeridianRow({
       <td className={`px-2 py-2 text-right font-mono text-xs tabular ${pole === "diti" ? "text-amber-200" : "text-gold-200"}`}>
         {d.muhurta_index}<span className="text-gold-600">/{muhurtaMax}</span>
       </td>
-      <td className={`px-4 py-2 text-right font-mono text-xs tabular ${pole === "diti" ? "text-amber-200" : "text-gold-200"}`}>
+      <td className={`px-2 py-2 text-right font-mono text-xs tabular ${pole === "diti" ? "text-amber-200" : "text-gold-200"}`}>
         {d.prana_index}<span className="text-gold-600">/{pranaMax}</span>
+      </td>
+      {/* Nakṣatra+pada per cell (varies with Trimurti shift) */}
+      <td className="px-4 py-2 text-right">
+        <div className="flex items-center justify-end gap-1.5">
+          <span className="inscription text-xs text-gold-400">{n.nakshatra_devanagari}</span>
+          <span className="text-[10px] font-mono text-gold-600 tabular">pa{n.pada}</span>
+        </div>
       </td>
     </tr>
   )

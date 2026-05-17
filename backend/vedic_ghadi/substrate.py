@@ -302,10 +302,18 @@ TRIMURTI_OPERATORS = (
 def compute_trimurti_views(k_meridian: float, pole_func) -> dict:
     """Compute Trimurti × pole views for one meridian + pole.
 
-    pole_func = vedic_time_of_day (Aditi) OR vedic_time_of_day_diti (Diti).
-    Each Trimurti operator phase-shifts K and re-runs the cascade.
-    Returns {op_id: {operator_meta + day_subdivision_at_shifted_K}}.
+    Each Trimurti operator phase-shifts K → re-runs:
+      • day-subdivision cascade (via pole_func)
+      • nakṣatra · pada · yoga · karaṇa at K_shifted (full pañcāṅga per cell)
+
+    Result: each cell = 1 (meridian × pole × Trimurti) sphoṭa with full
+    pañcāṅga attribution. Total claim-space: 504 cells × 27 nakṣatra ×
+    4 pada × 27 yoga × 60 karaṇa = entire saṃsāra/mokṣa lattice.
     """
+    # Lazy panchanga imports (avoid circular)
+    from .panchanga import (
+        nakshatra_at_kali_days, yoga_at_kali_days, karana_at_kali_days,
+    )
     out = {}
     for (op_id, en, hi, sub, offset, icon, tag) in TRIMURTI_OPERATORS:
         k_shifted = k_meridian + offset
@@ -319,6 +327,10 @@ def compute_trimurti_views(k_meridian: float, pole_func) -> dict:
             "phase_offset_days": round(offset, 6),
             "k_shifted": round(k_shifted, 6),
             "day_subdivision": pole_func(k_shifted),
+            # NEW v1.7.0 — full pañcāṅga at this cell's K_shifted
+            "nakshatra": nakshatra_at_kali_days(k_shifted),
+            "yoga":      yoga_at_kali_days(k_shifted),
+            "karana":    karana_at_kali_days(k_shifted),
         }
     return out
 

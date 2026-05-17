@@ -319,6 +319,10 @@ export interface TrimurtiView {
   phase_offset_days: number
   k_shifted: number
   day_subdivision: DaySubdivision
+  // v1.7.0 — full pañcāṅga at this cell's K_shifted
+  nakshatra: NakshatraLayer
+  yoga: YogaLayer
+  karana: KaranaLayer
 }
 
 export function computeTrimurtiViews(
@@ -338,6 +342,10 @@ export function computeTrimurtiViews(
       phase_offset_days: Math.round(op.offset_days * 1e6) / 1e6,
       k_shifted: Math.round(kShifted * 1e6) / 1e6,
       day_subdivision: poleFunc(kShifted),
+      // Full pañcāṅga at this cell — varies across Trimurti shifts
+      nakshatra: nakshatraAtKaliDays(kShifted),
+      yoga:      yogaAtKaliDays(kShifted),
+      karana:    karanaAtKaliDays(kShifted),
     }
   }
   return out
@@ -396,6 +404,7 @@ export interface YearLayer {
 
 import type { NakshatraLayer, YogaLayer, KaranaLayer } from "./panchanga.ts"
 import { nakshatraAtKaliDays, yogaAtKaliDays, karanaAtKaliDays } from "./panchanga.ts"
+export type { NakshatraLayer, YogaLayer, KaranaLayer }
 
 export interface MeridianView {
   label_en: string

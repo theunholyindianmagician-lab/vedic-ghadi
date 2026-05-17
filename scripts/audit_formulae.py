@@ -547,7 +547,70 @@ check(f"Maheśa × Aditi @ Ujjain μ = 10 (got {ujjain_tv['mahesh']['day_subdivi
       ujjain_tv["mahesh"]["day_subdivision"]["muhurta_index"] == 10)
 
 
-section("12d · Parallel meridian views (Ujjayinī ⟷ Kāmākhyā)")
+section("12d · Per-cell pañcāṅga — 13,608 + 54,432 claim-space")
+# ═══════════════════════════════════════════════════════════════════════════
+# Every Trimūrti × Bipolar × Meridian cell has nakṣatra · pada · yoga · karaṇa
+all_have_panchanga = all(
+    all("nakshatra" in cell and "yoga" in cell and "karana" in cell
+        for pole in m["trimurti"]
+        for cell in m["trimurti"][pole].values())
+    for m in ms.values()
+)
+check("All 504 cells have nakṣatra · yoga · karaṇa per cell",
+      all_have_panchanga)
+
+# Cell counts
+cell_count = sum(
+    1
+    for m in ms.values()
+    for pole in m["trimurti"]
+    for op in m["trimurti"][pole]
+)
+check(f"Total cells = 504 (got {cell_count})", cell_count == 504)
+
+# Claim-space cardinality (mathematical, substrate-aligned)
+check("504 × 27 = 13,608  (cell × nakṣatra)",  504 * 27 == 13_608)
+check("13,608 = 2³ × 3⁵ × 7  (substrate-aligned)",
+      13_608 == 2**3 * 3**5 * 7)
+check("504 × 108 = 54,432  (cell × nakṣatra × pada)", 504 * 108 == 54_432)
+check("54,432 = 2⁵ × 3⁵ × 7  (substrate-aligned)",
+      54_432 == 2**5 * 3**5 * 7)
+check("504 × 27 × 4 × 27 × 60 = 88,179,840  (full pañcāṅga lattice)",
+      504 * 27 * 4 * 27 * 60 == 88_179_840)
+
+# Per-cell pañcāṅga value ranges
+all_valid = all(
+    1 <= cell["nakshatra"]["nakshatra_index"] <= 27
+    and 1 <= cell["nakshatra"]["pada"] <= 4
+    and 1 <= cell["yoga"]["yoga_index"] <= 27
+    and 1 <= cell["karana"]["karana_index"] <= 60
+    for m in ms.values()
+    for pole in m["trimurti"]
+    for cell in m["trimurti"][pole].values()
+)
+check("Every cell has nakṣatra ∈ [1,27], pada ∈ [1,4], yoga ∈ [1,27], karaṇa ∈ [1,60]",
+      all_valid)
+
+# Verify Trimūrti shifts ACTUALLY cross nakṣatra/pada boundaries
+u = ms["ujjain"]["trimurti"]["aditi"]
+brahma_naks = u["brahma"]["nakshatra"]["nakshatra_name"]
+mahesh_naks = u["mahesh"]["nakshatra"]["nakshatra_name"]
+brahma_pada = u["brahma"]["nakshatra"]["pada"]
+vishnu_pada = u["vishnu"]["nakshatra"]["pada"]
+check(f"Trimūrti shift crosses nakṣatra at anchor (Brahmā {brahma_naks} → Maheśa {mahesh_naks})",
+      brahma_naks != mahesh_naks)
+check(f"Trimūrti shift crosses pada at anchor (Brahmā pa{brahma_pada} → Viṣṇu pa{vishnu_pada})",
+      brahma_pada != vishnu_pada)
+
+# Consistency: Brahmā × Aditi @ Ujjain = top-level nakshatra_layer
+top_naks = stamp["nakshatra_layer"]
+cell_naks = u["brahma"]["nakshatra"]
+check("Brahmā×Aditi@Ujjain nakṣatra = top-level nakshatra_layer (consistency)",
+      top_naks["nakshatra_name"] == cell_naks["nakshatra_name"]
+      and top_naks["pada"] == cell_naks["pada"])
+
+
+section("12e · Parallel meridian views (Ujjayinī ⟷ Kāmākhyā)")
 # ═══════════════════════════════════════════════════════════════════════════
 bm = stamp["by_meridian"]
 check("by_meridian.ujjain present",  "ujjain" in bm)
@@ -570,7 +633,7 @@ check("Astronomical layers NOT duplicated (meridian-independent)",
       "month_kamakhya" not in stamp and "tithi_kamakhya" not in stamp)
 
 
-section("12e · Edge cases & boundaries")
+section("12f · Edge cases & boundaries")
 # ═══════════════════════════════════════════════════════════════════════════
 # Day boundary: at IST midnight, did we cross to next civil day correctly?
 late = ghadi_at(2026, 5, 17, 23, 59, 59.999, 5.5)
