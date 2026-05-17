@@ -117,6 +117,21 @@ test.describe("Vedic Ghaḍī live UI", () => {
     await page.locator('button:has-text("2D")').first().click()
   })
 
+  test("10b · ISO mode renders 504 SVG cells (pure-SVG fallback)", async ({ page }) => {
+    const isoBtn = page.locator('button:has-text("ISO")').first()
+    await isoBtn.scrollIntoViewIfNeeded()
+    await expect(isoBtn).toBeVisible()
+    await isoBtn.click()
+    // Wait for the dynamic-imported component to mount
+    await page.waitForTimeout(800)
+    // SphoṭaIso section heading is the unique anchor
+    await expect(page.getByText(/SPHOṬA ISO/i)).toBeVisible({ timeout: 10_000 })
+    // 504 cell circles + 1 central OM seal = 505 circles in the iso SVG
+    const isoCircles = page.locator('svg circle')
+    // At least 500 circles must render (504 cells + seal; allow small margin)
+    await expect.poll(async () => await isoCircles.count(), { timeout: 10_000 }).toBeGreaterThan(500)
+  })
+
   test("11 · Time-Machine play button advances slider", async ({ page }) => {
     const playBtn = page.locator('button:has-text("चलाओ")').first()
     await playBtn.scrollIntoViewIfNeeded()
