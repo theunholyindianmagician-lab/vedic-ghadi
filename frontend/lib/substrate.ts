@@ -368,10 +368,12 @@ function meridianView(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ◈ Meridian registry — 12 named meridians × 4 categories (TS port)
+// ◈ Meridian registry — SAPTAMUKHI HANUMĀN CANNON
+// 7 mukhas × 12 meridians = 84 total (= 12 × 7 = 2² × 3 × 7)
+// Each mukha = one direction/sphere of Bhārat + Vishva.
 // ═══════════════════════════════════════════════════════════════════════════
 
-type MeridianCategory = "sacred" | "char-dham" | "modern" | "universal"
+type MeridianCategory = "purva" | "dakshina" | "paschim" | "uttara" | "urdhva" | "kala" | "sarva"
 
 interface MeridianRegistryEntry {
   id: string
@@ -383,25 +385,113 @@ interface MeridianRegistryEntry {
 }
 
 export const MERIDIAN_REGISTRY: readonly MeridianRegistryEntry[] = [
-  { id: "kamakhya",    label_en: "Kāmākhyā Devī",         label_hi: "कामाख्या",      label_sub: "KAAL symbolic origin · Sovereign East · Shakti-pīṭha",   lon_deg:  91.705900, category: "sacred" },
-  { id: "ujjain",      label_en: "Ujjayinī (Avantī)",     label_hi: "उज्जयिनी",      label_sub: "Sūrya Siddhānta canonical meridian · केन्द्र",            lon_deg:  75.778889, category: "sacred" },
-  { id: "kashi",       label_en: "Kāśī (Varanasi)",       label_hi: "काशी",         label_sub: "Shiva · Mokṣa-purī · 12 Jyotirliṅga",                     lon_deg:  83.010300, category: "sacred" },
-  { id: "badrinath",   label_en: "Badrīnāth",             label_hi: "बद्रीनाथ",      label_sub: "Char Dham · उत्तर · Viṣṇu",                                lon_deg:  79.493800, category: "char-dham" },
-  { id: "dwarka",      label_en: "Dvārkā",                label_hi: "द्वारका",        label_sub: "Char Dham · पश्चिम · Kṛṣṇa",                              lon_deg:  68.967800, category: "char-dham" },
-  { id: "rameshwaram", label_en: "Rāmeśvaram",            label_hi: "रामेश्वरम्",    label_sub: "Char Dham · दक्षिण · Śiva",                                lon_deg:  79.312900, category: "char-dham" },
-  { id: "puri",        label_en: "Purī (Jagannātha)",     label_hi: "पुरी",         label_sub: "Char Dham · पूर्व · Viṣṇu",                                lon_deg:  85.824500, category: "char-dham" },
-  { id: "delhi",       label_en: "Delhi (Indraprastha)",  label_hi: "दिल्ली",        label_sub: "राजधानी · IST anchor",                                     lon_deg:  77.209000, category: "modern" },
-  { id: "mumbai",      label_en: "Mumbai (Bombay)",       label_hi: "मुम्बई",        label_sub: "वाणिज्य राजधानी · Financial",                              lon_deg:  72.877700, category: "modern" },
-  { id: "bengaluru",   label_en: "Bengaluru",             label_hi: "बेंगलुरु",       label_sub: "तकनीकी केन्द्र · Tech",                                    lon_deg:  77.594600, category: "modern" },
-  { id: "greenwich",   label_en: "Greenwich (Royal Obs.)", label_hi: "ग्रीनिच",      label_sub: "Universal reference · Prime Meridian · 0°",                lon_deg:   0.000000, category: "universal" },
-  { id: "new_york",    label_en: "New York City",         label_hi: "न्यूयॉर्क",      label_sub: "Western Hemisphere · −74°",                               lon_deg: -74.006000, category: "universal" },
+  // ═══ 1 · हनुमत्-पूर्व · HANUMAT-EAST (12) ═════════════════════════════
+  { id: "kamakhya",       label_en: "Kāmākhyā Devī",          label_hi: "कामाख्या",        label_sub: "Shakti-pīṭha · KAAL symbolic origin · Sovereign East",      lon_deg:  91.705900, category: "purva" },
+  { id: "guwahati",       label_en: "Guwahati",               label_hi: "गुवाहाटी",        label_sub: "Brahmaputra · Assam capital",                                lon_deg:  91.740000, category: "purva" },
+  { id: "tripura_sundari",label_en: "Tripurā Sundarī",        label_hi: "त्रिपुर सुन्दरी",  label_sub: "Shakti-pīṭha (Udaipur, Tripura) · 10 Mahāvidyā",             lon_deg:  91.490000, category: "purva" },
+  { id: "tarapith",       label_en: "Tārāpīṭh",               label_hi: "तारापीठ",         label_sub: "Shakti-pīṭha · Birbhum, WB · Tārā Mā",                       lon_deg:  87.780000, category: "purva" },
+  { id: "kalighat",       label_en: "Kalighat",               label_hi: "कालीघाट",         label_sub: "Shakti-pīṭha · Kālī (Kolkata)",                              lon_deg:  88.334000, category: "purva" },
+  { id: "kolkata",        label_en: "Kolkata (Calcutta)",     label_hi: "कोलकाता",          label_sub: "पूर्व राजधानी · East metropolis",                            lon_deg:  88.363900, category: "purva" },
+  { id: "vaidyanath",     label_en: "Vaidyanāth (Deoghar)",   label_hi: "वैद्यनाथ",        label_sub: "Jyotirliṅga + Shakti-pīṭha · Jharkhand",                     lon_deg:  86.710000, category: "purva" },
+  { id: "puri",           label_en: "Purī (Jagannātha)",      label_hi: "पुरी",            label_sub: "Char Dham · पूर्व · Viṣṇu · Ratha-yātrā",                    lon_deg:  85.824500, category: "purva" },
+  { id: "bhubaneshwar",   label_en: "Bhubaneśvara",           label_hi: "भुवनेश्वर",        label_sub: "Liṅgarāja · Kalinga capital",                                 lon_deg:  85.833000, category: "purva" },
+  { id: "konark",         label_en: "Koṇārka",                label_hi: "कोणार्क",          label_sub: "Sun Temple · Sūrya · 13th-century pinnacle",                  lon_deg:  86.094500, category: "purva" },
+  { id: "patna",          label_en: "Patna (Pāṭaliputra)",    label_hi: "पटना",             label_sub: "Magadha capital · ancient Mauryan",                            lon_deg:  85.137600, category: "purva" },
+  { id: "kashi",          label_en: "Kāśī (Varanasi)",        label_hi: "काशी",             label_sub: "Vishvanāth Jyotirliṅga + Sapta-Purī · Mokṣa-purī",            lon_deg:  83.010300, category: "purva" },
+
+  // ═══ 2 · नरसिंह-दक्षिण · NARASIṂHA-SOUTH (12) ═════════════════════════
+  { id: "rameshwaram",    label_en: "Rāmeśvaram",             label_hi: "रामेश्वरम्",      label_sub: "Char Dham · दक्षिण + Jyotirliṅga · Śiva",                    lon_deg:  79.312900, category: "dakshina" },
+  { id: "tirumala",       label_en: "Tirumala (Tirupati)",    label_hi: "तिरुमला",          label_sub: "Venkateśvara · richest Hindu temple",                          lon_deg:  79.350000, category: "dakshina" },
+  { id: "kanyakumari",    label_en: "Kanyākumārī",            label_hi: "कन्याकुमारी",       label_sub: "Shakti-pīṭha · land's end · Indian Ocean",                    lon_deg:  77.550000, category: "dakshina" },
+  { id: "mallikarjuna",   label_en: "Mallikārjuna (Srisailam)",label_hi: "मल्लिकार्जुन",     label_sub: "Jyotirliṅga · Shakti-pīṭha · AP",                            lon_deg:  78.870000, category: "dakshina" },
+  { id: "chidambaram",    label_en: "Chidambaram",            label_hi: "चिदम्बरम्",        label_sub: "Pancha-Bhūta · Ākāśa · Naṭarāja",                             lon_deg:  79.690000, category: "dakshina" },
+  { id: "kanchipuram",    label_en: "Kāñchipuram",            label_hi: "काञ्ची",           label_sub: "Sapta-Purī + Pancha-Bhūta · Pṛthvī",                          lon_deg:  79.710000, category: "dakshina" },
+  { id: "madurai",        label_en: "Madurai (Meenakshi)",    label_hi: "मदुरै",            label_sub: "Pāṇḍya capital · Mīnākṣī",                                    lon_deg:  78.120000, category: "dakshina" },
+  { id: "chennai",        label_en: "Chennai (Madras)",       label_hi: "चेन्नई",           label_sub: "Tamil capital · दक्षिण metropolis",                           lon_deg:  80.270700, category: "dakshina" },
+  { id: "bengaluru",      label_en: "Bengaluru",              label_hi: "बेंगलुरु",          label_sub: "तकनीकी केन्द्र · Karnataka capital",                         lon_deg:  77.594600, category: "dakshina" },
+  { id: "hyderabad",      label_en: "Hyderabad",              label_hi: "हैदराबाद",         label_sub: "Telangana capital · Nizāmate · Bhāgyanagara",                  lon_deg:  78.490000, category: "dakshina" },
+  { id: "sabarimala",     label_en: "Sabarimala",             label_hi: "शबरीमाला",         label_sub: "Ayyappa · Kerala forest temple",                               lon_deg:  77.080000, category: "dakshina" },
+  { id: "padmanabhaswamy",label_en: "Padmanābhasvāmī",        label_hi: "पद्मनाभस्वामी",    label_sub: "Anantaśayana Viṣṇu · Trivandrum",                              lon_deg:  76.940000, category: "dakshina" },
+
+  // ═══ 3 · गरुड़-पश्चिम · GARUḌA-WEST (12) ══════════════════════════════
+  { id: "somnath",        label_en: "Somnāth",                label_hi: "सोमनाथ",           label_sub: "Jyotirliṅga · Gujarat · Saurashtra",                          lon_deg:  70.400000, category: "paschim" },
+  { id: "dwarka",         label_en: "Dvārkā",                 label_hi: "द्वारका",           label_sub: "Char Dham · पश्चिम · Kṛṣṇa city",                            lon_deg:  68.967800, category: "paschim" },
+  { id: "nageshwar",      label_en: "Nāgeśvara",              label_hi: "नागेश्वर",         label_sub: "Jyotirliṅga · near Dwarka · Gujarat",                          lon_deg:  69.080000, category: "paschim" },
+  { id: "bhimashankar",   label_en: "Bhīmāśaṅkara",           label_hi: "भीमाशंकर",         label_sub: "Jyotirliṅga · Sahyādri · Maharashtra",                         lon_deg:  73.540000, category: "paschim" },
+  { id: "trimbakeshwar",  label_en: "Trimbakeśvara",          label_hi: "त्र्यम्बकेश्वर",   label_sub: "Jyotirliṅga · Godāvarī origin · Nashik",                       lon_deg:  73.530000, category: "paschim" },
+  { id: "grishneshwar",   label_en: "Ghṛṣṇeśvara",            label_hi: "घृष्णेश्वर",        label_sub: "Jyotirliṅga · Ellora caves · Aurangabad",                      lon_deg:  75.180000, category: "paschim" },
+  { id: "kolhapur",       label_en: "Kolhāpur (Mahālakṣmī)",  label_hi: "कोल्हापुर",        label_sub: "Shakti-pīṭha · Mahālakṣmī · Maharashtra",                      lon_deg:  74.240000, category: "paschim" },
+  { id: "mumbai",         label_en: "Mumbai (Bombay)",        label_hi: "मुम्बई",           label_sub: "वाणिज्य राजधानी · Financial capital",                          lon_deg:  72.877700, category: "paschim" },
+  { id: "pune",           label_en: "Pune (Puṇyaśloka)",      label_hi: "पुणे",             label_sub: "Marāṭhā capital · Peshwa seat",                                lon_deg:  73.856700, category: "paschim" },
+  { id: "ahmedabad",      label_en: "Ahmedabad",              label_hi: "अहमदाबाद",         label_sub: "Gujarat metropolis · Sabarmati",                                lon_deg:  72.580000, category: "paschim" },
+  { id: "jaipur",         label_en: "Jaipur (Pink City)",     label_hi: "जयपुर",            label_sub: "Rajasthan capital · Jantar Mantar",                            lon_deg:  75.790000, category: "paschim" },
+  { id: "pushkar",        label_en: "Pushkar",                label_hi: "पुष्कर",           label_sub: "Brahmā's only major temple · Lake",                            lon_deg:  74.550000, category: "paschim" },
+
+  // ═══ 4 · वराह-उत्तर · VARĀHA-NORTH (12) ═══════════════════════════════
+  { id: "vaishno_devi",   label_en: "Vaishno Devī (Katra)",   label_hi: "वैष्णो देवी",     label_sub: "Shakti-pīṭha · Trikūṭa · J&K",                                lon_deg:  74.950000, category: "uttara" },
+  { id: "amritsar",       label_en: "Amritsar (Golden Temple)",label_hi: "अमृतसर",          label_sub: "Harimandir Sāhib · Sikh holiest",                              lon_deg:  74.872300, category: "uttara" },
+  { id: "srinagar",       label_en: "Srinagar",               label_hi: "श्रीनगर",          label_sub: "Kashmir capital · Dal Lake",                                   lon_deg:  74.797300, category: "uttara" },
+  { id: "chandigarh",     label_en: "Chandigarh",             label_hi: "चण्डीगढ़",         label_sub: "Modern-era capital · Punjab/Haryana",                          lon_deg:  76.779400, category: "uttara" },
+  { id: "delhi",          label_en: "Delhi (Indraprastha)",   label_hi: "दिल्ली",           label_sub: "राजधानी · IST civil anchor city",                              lon_deg:  77.209000, category: "uttara" },
+  { id: "mathura",        label_en: "Mathurā",                label_hi: "मथुरा",            label_sub: "Kṛṣṇa janma · Sapta-Purī",                                     lon_deg:  77.673700, category: "uttara" },
+  { id: "vrindavan",      label_en: "Vṛndāvana",              label_hi: "वृन्दावन",          label_sub: "Kṛṣṇa līlā-bhūmi · 5000 temples",                              lon_deg:  77.693800, category: "uttara" },
+  { id: "haridwar",       label_en: "Haridwar (Hari-dvāra)",  label_hi: "हरिद्वार",         label_sub: "Sapta-Purī + Kumbh · Ganga's gate",                            lon_deg:  78.164000, category: "uttara" },
+  { id: "jwala_devi",     label_en: "Jvālā Devī",             label_hi: "ज्वाला देवी",       label_sub: "Shakti-pīṭha · eternal flame · HP",                            lon_deg:  76.320000, category: "uttara" },
+  { id: "naina_devi",     label_en: "Nainā Devī",             label_hi: "नैना देवी",         label_sub: "Shakti-pīṭha · Bilaspur, HP",                                  lon_deg:  76.550000, category: "uttara" },
+  { id: "chamunda",       label_en: "Chāmuṇḍā Devī",          label_hi: "चामुण्डा",          label_sub: "Shakti-pīṭha · Kangra valley, HP",                             lon_deg:  76.320000, category: "uttara" },
+  { id: "kurukshetra",    label_en: "Kurukṣetra",             label_hi: "कुरुक्षेत्र",       label_sub: "Mahābhārata war · Gītā utterance",                             lon_deg:  76.837800, category: "uttara" },
+
+  // ═══ 5 · हयग्रीव-ऊर्ध्व · HAYAGRĪVA-UP (12) ═══════════════════════════
+  { id: "kailash",        label_en: "Mount Kailāsa",          label_hi: "कैलाश",            label_sub: "Śiva's abode · Tibet · Mānasarovara",                          lon_deg:  81.310000, category: "urdhva" },
+  { id: "mansarovar",     label_en: "Mānasarovara",           label_hi: "मानसरोवर",         label_sub: "Sacred lake · Tibet · Brahmā's manas",                         lon_deg:  81.410000, category: "urdhva" },
+  { id: "yamunotri",      label_en: "Yamunotri",              label_hi: "यमुनोत्री",         label_sub: "Chota Char Dham · Yamunā source",                              lon_deg:  78.450000, category: "urdhva" },
+  { id: "gangotri",       label_en: "Gaṅgotri",               label_hi: "गंगोत्री",          label_sub: "Chota Char Dham · Gaṅgā source",                               lon_deg:  78.943000, category: "urdhva" },
+  { id: "kedarnath",      label_en: "Kedārnāth",              label_hi: "केदारनाथ",          label_sub: "Jyotirliṅga + Chota Char Dham · Śiva",                         lon_deg:  79.066900, category: "urdhva" },
+  { id: "badrinath",      label_en: "Badrīnāth",              label_hi: "बद्रीनाथ",         label_sub: "Char Dham · उत्तर + Chota CD · Viṣṇu",                         lon_deg:  79.493800, category: "urdhva" },
+  { id: "hemkund",        label_en: "Hemkund Sāhib",          label_hi: "हेमकुंड साहिब",    label_sub: "Sikh + Lakṣmaṇa tapasya · Uttarakhand",                        lon_deg:  79.608000, category: "urdhva" },
+  { id: "tungnath",       label_en: "Tuṅganāth",              label_hi: "तुंगनाथ",           label_sub: "Panch Kedār · highest Shiva temple",                           lon_deg:  79.220000, category: "urdhva" },
+  { id: "devprayag",      label_en: "Devprayāg",              label_hi: "देवप्रयाग",         label_sub: "Sangam of Bhāgīrathī + Alaknanda → Gaṅgā",                     lon_deg:  78.598000, category: "urdhva" },
+  { id: "rishikesh",      label_en: "Ṛṣikesh",                label_hi: "ऋषिकेश",           label_sub: "Yoga capital · Gaṅgā gateway to Himalaya",                     lon_deg:  78.302500, category: "urdhva" },
+  { id: "joshimath",      label_en: "Joshīmaṭh",              label_hi: "जोशीमठ",            label_sub: "Ādi Śaṅkarācārya maṭha · north peeth",                         lon_deg:  79.567300, category: "urdhva" },
+  { id: "almora",         label_en: "Almora (Kāsār Devī)",    label_hi: "अल्मोड़ा",          label_sub: "Kumaon Himalaya · sacred hill station",                        lon_deg:  79.650000, category: "urdhva" },
+
+  // ═══ 6 · काल-समय · KĀLA-TIME (12) ═════════════════════════════════════
+  { id: "ujjain",         label_en: "Ujjayinī (Avantī)",      label_hi: "उज्जयिनी",         label_sub: "Sūrya Siddhānta canon meridian + Mahākāl Jyotirliṅga",         lon_deg:  75.778889, category: "kala" },
+  { id: "omkareshwar",    label_en: "Oṃkāreśvara",            label_hi: "ओंकारेश्वर",        label_sub: "Jyotirliṅga · Narmadā island · OṂ-shaped",                     lon_deg:  76.150000, category: "kala" },
+  { id: "ist_anchor",     label_en: "IST Anchor (Mirzapur)",  label_hi: "IST रेखा",         label_sub: "82.5° E meridian · India Standard Time definition",            lon_deg:  82.500000, category: "kala" },
+  { id: "prayagraj",      label_en: "Prayāgrāj (Triveni)",    label_hi: "प्रयागराज",         label_sub: "Triveni Sangam · Kumbh Mela · Sarasvatī",                      lon_deg:  81.846300, category: "kala" },
+  { id: "ayodhya",        label_en: "Ayodhyā",                label_hi: "अयोध्या",           label_sub: "Rāma janma · Sapta-Purī · Rāma-rājya",                         lon_deg:  82.198600, category: "kala" },
+  { id: "nashik",         label_en: "Nashik (Trimbak)",       label_hi: "नाशिक",            label_sub: "Godāvarī Kumbh · Rāma vana-vāsa",                              lon_deg:  73.789800, category: "kala" },
+  { id: "khajuraho",      label_en: "Khajurāho",              label_hi: "खजुराहो",          label_sub: "Chandela temples · Tantric stone yoga",                        lon_deg:  79.932900, category: "kala" },
+  { id: "hampi",          label_en: "Hampi (Vijayanagara)",   label_hi: "हम्पी",            label_sub: "Vijayanagara · Pampā · Tuṅgabhadrā",                           lon_deg:  76.460000, category: "kala" },
+  { id: "bhopal",         label_en: "Bhopal",                 label_hi: "भोपाल",             label_sub: "MP capital · Lake city",                                       lon_deg:  77.412600, category: "kala" },
+  { id: "indore",         label_en: "Indore",                 label_hi: "इन्दौर",            label_sub: "MP commerce · Holkar dynasty",                                  lon_deg:  75.857700, category: "kala" },
+  { id: "sanchi",         label_en: "Sāñchī Stūpa",           label_hi: "साँची",            label_sub: "Aśokan Buddhist stūpa · Madhya Pradesh",                       lon_deg:  77.740000, category: "kala" },
+  { id: "lucknow",        label_en: "Lucknow",                label_hi: "लखनऊ",             label_sub: "UP capital · Avadh Nawābate",                                   lon_deg:  80.946200, category: "kala" },
+
+  // ═══ 7 · सर्व-व्यापक · SARVA-ALL (12) ═════════════════════════════════
+  { id: "greenwich",      label_en: "Greenwich (Royal Obs.)", label_hi: "ग्रीनिच",         label_sub: "Universal reference · Prime Meridian · 0°",                    lon_deg:    0.000000, category: "sarva" },
+  { id: "london",         label_en: "London (City)",          label_hi: "लंडन",              label_sub: "Western capital · Thames",                                     lon_deg:   -0.127600, category: "sarva" },
+  { id: "mecca",          label_en: "Makkah (Kaʿbah)",        label_hi: "मक्का",            label_sub: "Islamic Qibla · 5-pillar epicenter",                            lon_deg:   39.826200, category: "sarva" },
+  { id: "jerusalem",      label_en: "Jerusalem",              label_hi: "यरुशलम",            label_sub: "Abrahamic faiths · Temple Mount + Wailing Wall",                lon_deg:   35.233000, category: "sarva" },
+  { id: "cairo",          label_en: "Cairo (al-Qāhirah)",     label_hi: "कैरो",              label_sub: "Egyptian civilization · Pyramids of Giza",                     lon_deg:   31.235700, category: "sarva" },
+  { id: "lumbini",        label_en: "Lumbinī",                label_hi: "लुम्बिनी",          label_sub: "Buddha's birth · Nepal · UNESCO",                              lon_deg:   83.278000, category: "sarva" },
+  { id: "bodh_gaya",      label_en: "Bodh Gayā",              label_hi: "बोधगया",            label_sub: "Buddha's enlightenment · Mahābodhi tree",                       lon_deg:   84.992500, category: "sarva" },
+  { id: "sarnath",        label_en: "Sārnāth",                label_hi: "सारनाथ",           label_sub: "Buddha's first sermon · Dharma-cakra-pravartana",              lon_deg:   83.030000, category: "sarva" },
+  { id: "pashupatinath",  label_en: "Paśupatināth",           label_hi: "पशुपतिनाथ",         label_sub: "Śiva · Nepal · Bāgmati river",                                 lon_deg:   85.350000, category: "sarva" },
+  { id: "new_york",       label_en: "New York City",          label_hi: "न्यूयॉर्क",         label_sub: "Western Hemisphere · −74°",                                   lon_deg:  -74.006000, category: "sarva" },
+  { id: "tokyo",          label_en: "Tokyo",                  label_hi: "तोक्यो",            label_sub: "East Asian metropolis · Edo · Imperial Palace",                lon_deg:  139.691700, category: "sarva" },
+  { id: "sydney",         label_en: "Sydney",                 label_hi: "सिडनी",             label_sub: "Southern Hemisphere · Oceania",                                lon_deg:  151.209300, category: "sarva" },
 ] as const
 
 export const MERIDIAN_CATEGORIES: readonly [MeridianCategory, string][] = [
-  ["sacred",    "🔱 सनातन · Sacred Trinity (KAAL)"],
-  ["char-dham", "🛕 चार धाम · Four Cardinal Dhāma"],
-  ["modern",    "🏙️  आधुनिक भारत · Modern India"],
-  ["universal", "🌍 वैश्विक · Universal references"],
+  ["purva",    "🐒 हनुमत्-पूर्व · Hanumat-EAST"],
+  ["dakshina", "🦁 नरसिंह-दक्षिण · Narasiṃha-SOUTH"],
+  ["paschim",  "🦅 गरुड़-पश्चिम · Garuḍa-WEST"],
+  ["uttara",   "🐗 वराह-उत्तर · Varāha-NORTH"],
+  ["urdhva",   "🐴 हयग्रीव-ऊर्ध्व · Hayagrīva-UP (Himalaya)"],
+  ["kala",     "⏳ काल-समय · Kāla-TIME (Central · Sūrya Siddhānta core)"],
+  ["sarva",    "🌐 सर्व-व्यापक · Sarva-ALL (Universal)"],
 ] as const
 
 export interface MeridianFullView extends MeridianView {

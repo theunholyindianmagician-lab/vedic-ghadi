@@ -309,41 +309,130 @@ def vedic_time_of_day(kali_civil_days: float) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# ◈ MERIDIAN REGISTRY — 12 named meridians in 4 categories
-# Adding a new one is one line. The math generalizes immediately.
+# ◈ MERIDIAN REGISTRY — SAPTAMUKHI HANUMĀN CANNON
+# 7 mukhas × 12 meridians each = 84 meridians total (= 12 × 7 = 2² × 3 × 7)
+# Each mukha sphoṭas across one direction/sphere of Bhārat + Vishva.
 # ═══════════════════════════════════════════════════════════════════════════
 #
-# Each entry: (id, label_en, label_hi, label_sub, lon_deg, category)
-# Categories: sacred · char-dham · modern · universal
-# (12 = 2² × 3 — substrate-aligned grid: 3 × 4)
+# Saptamukhi alignment (KAAL discipline):
+#   Hanumat   · पूर्व  · EAST    · East India + Northeast (Assam, WB, Odisha, Bihar)
+#   Narasiṃha · दक्षिण · SOUTH   · TN, Kerala, Karnataka, AP, Telangana
+#   Garuḍa    · पश्चिम · WEST    · Gujarat, Maharashtra (west), Rajasthan
+#   Varāha    · उत्तर  · NORTH   · J&K, Punjab, HP, Haryana, UP (north)
+#   Hayagrīva · ऊर्ध्व · UP      · Himalayas + Char Dham + Kailash
+#   Kāla      · समय   · TIME    · Central India (MP, Avantī, IST anchor)
+#   Sarva     · सर्व   · ALL     · Universal / cross-cultural
+#
+# Each meridian: (id, label_en, label_hi, label_sub, lon_deg, mukha)
 
 MERIDIAN_REGISTRY = (
-    # ── KAAL / Sacred (3) ─────────────────────────────────────────────────
-    ("kamakhya",    "Kāmākhyā Devī",         "कामाख्या",      "KAAL symbolic origin · Sovereign East · Shakti-pīṭha",   91.705900, "sacred"),
-    ("ujjain",      "Ujjayinī (Avantī)",     "उज्जयिनी",      "Sūrya Siddhānta canonical meridian · केन्द्र",             75.778889, "sacred"),
-    ("kashi",       "Kāśī (Varanasi)",       "काशी",          "Shiva · Mokṣa-purī · 12 Jyotirliṅga",                      83.010300, "sacred"),
+    # ═══ 1 · हनुमत्-पूर्व · HANUMAT-EAST (12) ═════════════════════════════
+    ("kamakhya",      "Kāmākhyā Devī",         "कामाख्या",       "Shakti-pīṭha · KAAL symbolic origin · Sovereign East",   91.705900, "purva"),
+    ("guwahati",      "Guwahati",              "गुवाहाटी",       "Brahmaputra · Assam capital",                            91.740000, "purva"),
+    ("tripura_sundari","Tripurā Sundarī",      "त्रिपुर सुन्दरी", "Shakti-pīṭha (Udaipur, Tripura) · 10 Mahāvidyā",        91.490000, "purva"),
+    ("tarapith",      "Tārāpīṭh",              "तारापीठ",        "Shakti-pīṭha · Birbhum, WB · Tārā Mā",                   87.780000, "purva"),
+    ("kalighat",      "Kalighat",              "कालीघाट",        "Shakti-pīṭha · Kālī (Kolkata)",                          88.334000, "purva"),
+    ("kolkata",       "Kolkata (Calcutta)",    "कोलकाता",         "पूर्व राजधानी · East metropolis",                       88.363900, "purva"),
+    ("vaidyanath",    "Vaidyanāth (Deoghar)",  "वैद्यनाथ",       "Jyotirliṅga + Shakti-pīṭha · Jharkhand",                 86.710000, "purva"),
+    ("puri",          "Purī (Jagannātha)",     "पुरी",           "Char Dham · पूर्व · Viṣṇu · Ratha-yātrā",                85.824500, "purva"),
+    ("bhubaneshwar",  "Bhubaneśvara",          "भुवनेश्वर",       "Liṅgarāja · Kalinga capital",                            85.833000, "purva"),
+    ("konark",        "Koṇārka",               "कोणार्क",         "Sun Temple · Sūrya · 13th-century pinnacle",             86.094500, "purva"),
+    ("patna",         "Patna (Pāṭaliputra)",   "पटना",            "Magadha capital · ancient Mauryan",                      85.137600, "purva"),
+    ("kashi",         "Kāśī (Varanasi)",       "काशी",            "Vishvanāth Jyotirliṅga + Sapta-Purī · Mokṣa-purī",      83.010300, "purva"),
 
-    # ── Char Dham (4) — 4 directions ──────────────────────────────────────
-    ("badrinath",   "Badrīnāth",             "बद्रीनाथ",      "Char Dham · उत्तर · Viṣṇu",                                79.493800, "char-dham"),
-    ("dwarka",      "Dvārkā",                "द्वारका",        "Char Dham · पश्चिम · Kṛṣṇa",                              68.967800, "char-dham"),
-    ("rameshwaram", "Rāmeśvaram",            "रामेश्वरम्",     "Char Dham · दक्षिण · Śiva",                                79.312900, "char-dham"),
-    ("puri",        "Purī (Jagannātha)",     "पुरी",          "Char Dham · पूर्व · Viṣṇu",                                85.824500, "char-dham"),
+    # ═══ 2 · नरसिंह-दक्षिण · NARASIṂHA-SOUTH (12) ═════════════════════════
+    ("rameshwaram",   "Rāmeśvaram",            "रामेश्वरम्",     "Char Dham · दक्षिण + Jyotirliṅga · Śiva",                79.312900, "dakshina"),
+    ("tirumala",      "Tirumala (Tirupati)",   "तिरुमला",        "Venkateśvara · richest Hindu temple",                    79.350000, "dakshina"),
+    ("kanyakumari",   "Kanyākumārī",           "कन्याकुमारी",     "Shakti-pīṭha · land's end · Indian Ocean",               77.550000, "dakshina"),
+    ("mallikarjuna",  "Mallikārjuna (Srisailam)","मल्लिकार्जुन",  "Jyotirliṅga · Shakti-pīṭha · AP",                       78.870000, "dakshina"),
+    ("chidambaram",   "Chidambaram",           "चिदम्बरम्",      "Pancha-Bhūta · Ākāśa · Naṭarāja",                        79.690000, "dakshina"),
+    ("kanchipuram",   "Kāñchipuram",           "काञ्ची",         "Sapta-Purī + Pancha-Bhūta · Pṛthvī",                     79.710000, "dakshina"),
+    ("madurai",       "Madurai (Meenakshi)",   "मदुरै",          "Pāṇḍya capital · Mīnākṣī",                               78.120000, "dakshina"),
+    ("chennai",       "Chennai (Madras)",      "चेन्नई",          "Tamil capital · दक्षिण metropolis",                      80.270700, "dakshina"),
+    ("bengaluru",     "Bengaluru",             "बेंगलुरु",        "तकनीकी केन्द्र · Karnataka capital",                    77.594600, "dakshina"),
+    ("hyderabad",     "Hyderabad",             "हैदराबाद",       "Telangana capital · Nizāmate · Bhāgyanagara",            78.490000, "dakshina"),
+    ("sabarimala",    "Sabarimala",            "शबरीमाला",        "Ayyappa · Kerala forest temple",                          77.080000, "dakshina"),
+    ("padmanabhaswamy","Padmanābhasvāmī",      "पद्मनाभस्वामी",   "Anantaśayana Viṣṇu · Trivandrum",                       76.940000, "dakshina"),
 
-    # ── Modern Bhārat (3) ─────────────────────────────────────────────────
-    ("delhi",       "Delhi (Indraprastha)",  "दिल्ली",         "राजधानी · IST anchor",                                     77.209000, "modern"),
-    ("mumbai",      "Mumbai (Bombay)",       "मुम्बई",         "वाणिज्य राजधानी · Financial",                              72.877700, "modern"),
-    ("bengaluru",   "Bengaluru",             "बेंगलुरु",        "तकनीकी केन्द्र · Tech",                                   77.594600, "modern"),
+    # ═══ 3 · गरुड़-पश्चिम · GARUḌA-WEST (12) ══════════════════════════════
+    ("somnath",       "Somnāth",               "सोमनाथ",          "Jyotirliṅga · Gujarat · Saurashtra",                    70.400000, "paschim"),
+    ("dwarka",        "Dvārkā",                "द्वारका",         "Char Dham · पश्चिम · Kṛṣṇa city",                       68.967800, "paschim"),
+    ("nageshwar",     "Nāgeśvara",             "नागेश्वर",       "Jyotirliṅga · near Dwarka · Gujarat",                    69.080000, "paschim"),
+    ("bhimashankar",  "Bhīmāśaṅkara",          "भीमाशंकर",        "Jyotirliṅga · Sahyādri · Maharashtra",                   73.540000, "paschim"),
+    ("trimbakeshwar", "Trimbakeśvara",         "त्र्यम्बकेश्वर",   "Jyotirliṅga · Godāvarī origin · Nashik",                73.530000, "paschim"),
+    ("grishneshwar",  "Ghṛṣṇeśvara",           "घृष्णेश्वर",      "Jyotirliṅga · Ellora caves · Aurangabad",                75.180000, "paschim"),
+    ("kolhapur",      "Kolhāpur (Mahālakṣmī)", "कोल्हापुर",       "Shakti-pīṭha · Mahālakṣmī · Maharashtra",                74.240000, "paschim"),
+    ("mumbai",        "Mumbai (Bombay)",       "मुम्बई",          "वाणिज्य राजधानी · Financial capital",                   72.877700, "paschim"),
+    ("pune",          "Pune (Puṇyaśloka)",     "पुणे",            "Marāṭhā capital · Peshwa seat",                          73.856700, "paschim"),
+    ("ahmedabad",     "Ahmedabad",             "अहमदाबाद",        "Gujarat metropolis · Sabarmati",                          72.580000, "paschim"),
+    ("jaipur",        "Jaipur (Pink City)",    "जयपुर",           "Rajasthan capital · Jantar Mantar",                      75.790000, "paschim"),
+    ("pushkar",       "Pushkar",               "पुष्कर",          "Brahmā's only major temple · Lake",                      74.550000, "paschim"),
 
-    # ── Universal (2) ─────────────────────────────────────────────────────
-    ("greenwich",   "Greenwich (Royal Obs.)", "ग्रीनिच",       "Universal reference · Prime Meridian · 0°",               0.000000,  "universal"),
-    ("new_york",    "New York City",          "न्यूयॉर्क",      "Western Hemisphere · −74°",                              -74.006000, "universal"),
+    # ═══ 4 · वराह-उत्तर · VARĀHA-NORTH (12) ═══════════════════════════════
+    ("vaishno_devi",  "Vaishno Devī (Katra)",  "वैष्णो देवी",    "Shakti-pīṭha · Trikūṭa · J&K",                           74.950000, "uttara"),
+    ("amritsar",      "Amritsar (Golden Temple)","अमृतसर",       "Harimandir Sāhib · Sikh holiest",                        74.872300, "uttara"),
+    ("srinagar",      "Srinagar",              "श्रीनगर",        "Kashmir capital · Dal Lake",                              74.797300, "uttara"),
+    ("chandigarh",    "Chandigarh",            "चण्डीगढ़",        "Modern-era capital · Punjab/Haryana",                    76.779400, "uttara"),
+    ("delhi",         "Delhi (Indraprastha)",  "दिल्ली",          "राजधानी · IST civil anchor city",                       77.209000, "uttara"),
+    ("mathura",       "Mathurā",               "मथुरा",           "Kṛṣṇa janma · Sapta-Purī",                               77.673700, "uttara"),
+    ("vrindavan",     "Vṛndāvana",             "वृन्दावन",         "Kṛṣṇa līlā-bhūmi · 5000 temples",                       77.693800, "uttara"),
+    ("haridwar",      "Haridwar (Hari-dvāra)", "हरिद्वार",       "Sapta-Purī + Kumbh · Ganga's gate",                       78.164000, "uttara"),
+    ("jwala_devi",    "Jvālā Devī",            "ज्वाला देवी",     "Shakti-pīṭha · eternal flame · HP",                      76.320000, "uttara"),
+    ("naina_devi",    "Nainā Devī",            "नैना देवी",       "Shakti-pīṭha · Bilaspur, HP",                            76.550000, "uttara"),
+    ("chamunda",      "Chāmuṇḍā Devī",         "चामुण्डा",         "Shakti-pīṭha · Kangra valley, HP",                      76.320000, "uttara"),
+    ("kurukshetra",   "Kurukṣetra",            "कुरुक्षेत्र",      "Mahābhārata war · Gītā utterance",                       76.837800, "uttara"),
+
+    # ═══ 5 · हयग्रीव-ऊर्ध्व · HAYAGRĪVA-UP (12) ═══════════════════════════
+    ("kailash",       "Mount Kailāsa",         "कैलाश",          "Śiva's abode · Tibet · Mānasarovara",                    81.310000, "urdhva"),
+    ("mansarovar",    "Mānasarovara",          "मानसरोवर",        "Sacred lake · Tibet · Brahmā's manas",                   81.410000, "urdhva"),
+    ("yamunotri",     "Yamunotri",             "यमुनोत्री",        "Chota Char Dham · Yamunā source",                       78.450000, "urdhva"),
+    ("gangotri",      "Gaṅgotri",              "गंगोत्री",         "Chota Char Dham · Gaṅgā source",                        78.943000, "urdhva"),
+    ("kedarnath",     "Kedārnāth",             "केदारनाथ",         "Jyotirliṅga + Chota Char Dham · Śiva",                  79.066900, "urdhva"),
+    ("badrinath",     "Badrīnāth",             "बद्रीनाथ",        "Char Dham · उत्तर + Chota CD · Viṣṇu",                  79.493800, "urdhva"),
+    ("hemkund",       "Hemkund Sāhib",         "हेमकुंड साहिब",   "Sikh + Lakṣmaṇa tapasya · Uttarakhand",                  79.608000, "urdhva"),
+    ("tungnath",      "Tuṅganāth",             "तुंगनाथ",          "Panch Kedār · highest Shiva temple",                    79.220000, "urdhva"),
+    ("devprayag",     "Devprayāg",             "देवप्रयाग",        "Sangam of Bhāgīrathī + Alaknanda → Gaṅgā",              78.598000, "urdhva"),
+    ("rishikesh",     "Ṛṣikesh",               "ऋषिकेश",          "Yoga capital · Gaṅgā gateway to Himalaya",               78.302500, "urdhva"),
+    ("joshimath",     "Joshīmaṭh",             "जोशीमठ",          "Ādi Śaṅkarācārya maṭha · north peeth",                  79.567300, "urdhva"),
+    ("almora",        "Almora (Kāsār Devī)",   "अल्मोड़ा",         "Kumaon Himalaya · sacred hill station",                  79.650000, "urdhva"),
+
+    # ═══ 6 · काल-समय · KĀLA-TIME (12) — Central + Sūrya Siddhānta core ═══
+    ("ujjain",        "Ujjayinī (Avantī)",     "उज्जयिनी",        "Sūrya Siddhānta canon meridian + Mahākāl Jyotirliṅga",  75.778889, "kala"),
+    ("omkareshwar",   "Oṃkāreśvara",           "ओंकारेश्वर",       "Jyotirliṅga · Narmadā island · OṂ-shaped",              76.150000, "kala"),
+    ("ist_anchor",    "IST Anchor (Mirzapur)", "IST रेखा",        "82.5° E meridian · India Standard Time definition",      82.500000, "kala"),
+    ("prayagraj",     "Prayāgrāj (Triveni)",   "प्रयागराज",        "Triveni Sangam · Kumbh Mela · Sarasvatī",               81.846300, "kala"),
+    ("ayodhya",       "Ayodhyā",               "अयोध्या",          "Rāma janma · Sapta-Purī · Rāma-rājya",                  82.198600, "kala"),
+    ("nashik",        "Nashik (Trimbak)",      "नाशिक",           "Godāvarī Kumbh · Rāma vana-vāsa",                        73.789800, "kala"),
+    ("khajuraho",     "Khajurāho",             "खजुराहो",         "Chandela temples · Tantric stone yoga",                  79.932900, "kala"),
+    ("hampi",         "Hampi (Vijayanagara)",  "हम्पी",           "Vijayanagara · Pampā · Tuṅgabhadrā",                     76.460000, "kala"),
+    ("bhopal",        "Bhopal",                "भोपाल",            "MP capital · Lake city",                                 77.412600, "kala"),
+    ("indore",        "Indore",                "इन्दौर",           "MP commerce · Holkar dynasty",                            75.857700, "kala"),
+    ("sanchi",        "Sāñchī Stūpa",          "साँची",           "Aśokan Buddhist stūpa · Madhya Pradesh",                  77.740000, "kala"),
+    ("lucknow",       "Lucknow",               "लखनऊ",            "UP capital · Avadh Nawābate",                             80.946200, "kala"),
+
+    # ═══ 7 · सर्व-व्यापक · SARVA-ALL (12) — Universal / cross-cultural ═══
+    ("greenwich",     "Greenwich (Royal Obs.)", "ग्रीनिच",        "Universal reference · Prime Meridian · 0°",              0.000000,  "sarva"),
+    ("london",        "London (City)",         "लंडन",             "Western capital · Thames",                              -0.127600, "sarva"),
+    ("mecca",         "Makkah (Kaʿbah)",       "मक्का",           "Islamic Qibla · 5-pillar epicenter",                     39.826200, "sarva"),
+    ("jerusalem",     "Jerusalem",             "यरुशलम",          "Abrahamic faiths · Temple Mount + Wailing Wall",         35.233000, "sarva"),
+    ("cairo",         "Cairo (al-Qāhirah)",    "कैरो",             "Egyptian civilization · Pyramids of Giza",              31.235700, "sarva"),
+    ("lumbini",       "Lumbinī",               "लुम्बिनी",         "Buddha's birth · Nepal · UNESCO",                       83.278000, "sarva"),
+    ("bodh_gaya",     "Bodh Gayā",             "बोधगया",          "Buddha's enlightenment · Mahābodhi tree",                84.992500, "sarva"),
+    ("sarnath",       "Sārnāth",               "सारनाथ",          "Buddha's first sermon · Dharma-cakra-pravartana",        83.030000, "sarva"),
+    ("pashupatinath", "Paśupatināth",          "पशुपतिनाथ",       "Śiva · Nepal · Bāgmati river",                          85.350000, "sarva"),
+    ("new_york",      "New York City",         "न्यूयॉर्क",        "Western Hemisphere · −74°",                            -74.006000, "sarva"),
+    ("tokyo",         "Tokyo",                 "तोक्यो",           "East Asian metropolis · Edo · Imperial Palace",         139.691700, "sarva"),
+    ("sydney",        "Sydney",                "सिडनी",            "Southern Hemisphere · Oceania",                         151.209300, "sarva"),
 )
 
 MERIDIAN_CATEGORIES = (
-    ("sacred",     "🔱 सनातन · Sacred Trinity (KAAL)"),
-    ("char-dham",  "🛕 चार धाम · Four Cardinal Dhāma"),
-    ("modern",     "🏙️  आधुनिक भारत · Modern India"),
-    ("universal",  "🌍 वैश्विक · Universal references"),
+    ("purva",     "🐒 हनुमत्-पूर्व · Hanumat-EAST"),
+    ("dakshina",  "🦁 नरसिंह-दक्षिण · Narasiṃha-SOUTH"),
+    ("paschim",   "🦅 गरुड़-पश्चिम · Garuḍa-WEST"),
+    ("uttara",    "🐗 वराह-उत्तर · Varāha-NORTH"),
+    ("urdhva",    "🐴 हयग्रीव-ऊर्ध्व · Hayagrīva-UP (Himalaya)"),
+    ("kala",      "⏳ काल-समय · Kāla-TIME (Central · Sūrya Siddhānta core)"),
+    ("sarva",     "🌐 सर्व-व्यापक · Sarva-ALL (Universal)"),
 )
 
 

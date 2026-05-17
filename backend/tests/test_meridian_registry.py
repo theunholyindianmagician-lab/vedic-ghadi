@@ -12,20 +12,22 @@ from vedic_ghadi.substrate import (
 )
 
 
-def test_registry_has_12_meridians():
-    assert len(MERIDIAN_REGISTRY) == 12  # 2² × 3 — substrate-aligned
+def test_registry_has_84_meridians():
+    # Saptamukhi cannon: 7 mukhas × 12 meridians = 84 = 2² × 3 × 7
+    assert len(MERIDIAN_REGISTRY) == 84
 
 
-def test_registry_has_4_categories():
-    assert len(MERIDIAN_CATEGORIES) == 4
+def test_registry_has_7_mukhas():
+    assert len(MERIDIAN_CATEGORIES) == 7
     cats = {c[0] for c in MERIDIAN_CATEGORIES}
-    assert cats == {"sacred", "char-dham", "modern", "universal"}
+    assert cats == {"purva", "dakshina", "paschim", "uttara", "urdhva", "kala", "sarva"}
 
 
-def test_all_categories_populated():
+def test_all_mukhas_have_exactly_12_meridians():
+    """Each mukha (face of Hanumān) fires exactly 12 sphoṭas."""
     g = meridian_groups()
     for cat, _label in MERIDIAN_CATEGORIES:
-        assert len(g[cat]) > 0, f"category {cat} is empty"
+        assert len(g[cat]) == 12, f"mukha {cat} has {len(g[cat])} (must be 12)"
 
 
 def test_no_duplicate_meridian_ids():
@@ -33,10 +35,19 @@ def test_no_duplicate_meridian_ids():
     assert len(ids) == len(set(ids)), f"duplicate ids: {ids}"
 
 
-def test_sacred_trinity_present():
+def test_jyotirlinga_meridians_present():
+    """12 Jyotirliṅgas — verify the registered ones are tagged correctly."""
     ids = {m[0] for m in MERIDIAN_REGISTRY}
-    for required in ("kamakhya", "ujjain", "kashi"):
-        assert required in ids, f"missing sacred: {required}"
+    # Jyotirliṅgas in the registry (some are direct, others are co-located)
+    jyotirlingas_in_registry = (
+        "somnath", "mallikarjuna", "ujjain",          # 3 of 12 (Mahākāl = Ujjain)
+        "omkareshwar", "kedarnath",                    # 5
+        "bhimashankar", "kashi",                       # 7 (Vishvanāth = Kāśī)
+        "trimbakeshwar", "vaidyanath",                 # 9
+        "nageshwar", "rameshwaram", "grishneshwar",   # 12
+    )
+    for j in jyotirlingas_in_registry:
+        assert j in ids, f"missing Jyotirliṅga: {j}"
 
 
 def test_char_dham_all_four_present():
@@ -45,15 +56,39 @@ def test_char_dham_all_four_present():
         assert required in ids, f"missing char-dham: {required}"
 
 
-def test_modern_metros_present():
+def test_chota_char_dham_present():
     ids = {m[0] for m in MERIDIAN_REGISTRY}
-    for required in ("delhi", "mumbai", "bengaluru"):
-        assert required in ids, f"missing modern: {required}"
+    for required in ("yamunotri", "gangotri", "kedarnath", "badrinath"):
+        assert required in ids, f"missing chota char dham: {required}"
+
+
+def test_shakti_pithas_present():
+    """Major Shakti-pīṭhas should be in the registry."""
+    ids = {m[0] for m in MERIDIAN_REGISTRY}
+    for p in ("kamakhya", "vaishno_devi", "kalighat", "tripura_sundari",
+              "tarapith", "kanyakumari", "kolhapur", "jwala_devi", "chamunda"):
+        assert p in ids, f"missing Shakti-pīṭha: {p}"
+
+
+def test_sapta_puri_complete():
+    """7 mokṣa-dāyaka purīs."""
+    ids = {m[0] for m in MERIDIAN_REGISTRY}
+    for sp in ("ayodhya", "mathura", "haridwar", "kashi", "kanchipuram",
+               "ujjain", "dwarka"):
+        assert sp in ids, f"missing Sapta-Purī: {sp}"
+
+
+def test_kumbh_mela_sites_present():
+    ids = {m[0] for m in MERIDIAN_REGISTRY}
+    for k in ("haridwar", "prayagraj", "ujjain", "nashik"):
+        assert k in ids, f"missing Kumbh site: {k}"
 
 
 def test_universal_anchors_present():
     ids = {m[0] for m in MERIDIAN_REGISTRY}
-    assert "greenwich" in ids
+    for u in ("greenwich", "mecca", "jerusalem", "lumbini", "bodh_gaya",
+              "new_york", "tokyo", "sydney"):
+        assert u in ids, f"missing universal anchor: {u}"
     # Greenwich is at 0° exactly
     g_entry = next(m for m in MERIDIAN_REGISTRY if m[0] == "greenwich")
     assert g_entry[4] == 0.0
@@ -138,7 +173,7 @@ def test_stamp_includes_full_registry():
     assert "meridians" in stamp
     assert "meridian_groups" in stamp
     assert "meridian_categories" in stamp
-    assert len(stamp["meridians"]) == 12
+    assert len(stamp["meridians"]) == 84
 
 
 def test_backward_compat_by_meridian_still_works():

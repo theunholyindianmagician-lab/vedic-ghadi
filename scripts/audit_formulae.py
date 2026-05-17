@@ -384,18 +384,33 @@ section("12a · Full meridian registry (12 × 4 categories)")
 # ═══════════════════════════════════════════════════════════════════════════
 from vedic_ghadi.substrate import MERIDIAN_REGISTRY, MERIDIAN_CATEGORIES, UJJAIN_LON_DEG
 ms = stamp["meridians"]
-check("12 meridians in registry",       len(MERIDIAN_REGISTRY) == 12)
-check("4 categories (sacred/char-dham/modern/universal)",
-      len(MERIDIAN_CATEGORIES) == 4)
-check("All 12 IDs present in stamp.meridians", len(ms) == 12)
-check("Sacred Trinity present (Kāmākhyā · Ujjayinī · Kāśī)",
-      all(k in ms for k in ("kamakhya", "ujjain", "kashi")))
+check("84 meridians in registry (saptamukhi cannon: 12 × 7)",
+      len(MERIDIAN_REGISTRY) == 84)
+check("7 mukhas (purva/dakshina/paschim/uttara/urdhva/kala/sarva)",
+      len(MERIDIAN_CATEGORIES) == 7)
+check("All 84 IDs present in stamp.meridians", len(ms) == 84)
+# Every mukha = exactly 12 sphoṭas
+from collections import Counter
+counts = Counter(m["category"] for m in ms.values())
+for cat, _label in MERIDIAN_CATEGORIES:
+    check(f"Mukha {cat} fires exactly 12 sphoṭas (got {counts[cat]})",
+          counts[cat] == 12)
+check("12 Jyotirliṅgas covered (somnath · mallikarjuna · ujjain · omkareshwar · kedarnath · bhimashankar · kashi · trimbakeshwar · vaidyanath · nageshwar · rameshwaram · grishneshwar)",
+      all(j in ms for j in ("somnath","mallikarjuna","ujjain","omkareshwar","kedarnath","bhimashankar","kashi","trimbakeshwar","vaidyanath","nageshwar","rameshwaram","grishneshwar")))
 check("Char Dham complete (Badrīnāth · Dvārkā · Rāmeśvaram · Purī)",
       all(k in ms for k in ("badrinath", "dwarka", "rameshwaram", "puri")))
-check("Modern metros present (Delhi · Mumbai · Bengaluru)",
-      all(k in ms for k in ("delhi", "mumbai", "bengaluru")))
-check("Universal anchors present (Greenwich · NYC)",
-      all(k in ms for k in ("greenwich", "new_york")))
+check("Chota Char Dham complete (Yamunotri · Gaṅgotri · Kedārnāth · Badrīnāth)",
+      all(k in ms for k in ("yamunotri", "gangotri", "kedarnath", "badrinath")))
+check("Sapta-Purī complete (Ayodhyā · Mathurā · Haridwar · Kāśī · Kāñchī · Ujjain · Dvārkā)",
+      all(k in ms for k in ("ayodhya","mathura","haridwar","kashi","kanchipuram","ujjain","dwarka")))
+check("Major Shakti-pīṭhas (Kāmākhyā · Vaishno · Kālīghāṭ · Tripura · Tārā · Kanyākumārī · Mahālakṣmī)",
+      all(k in ms for k in ("kamakhya","vaishno_devi","kalighat","tripura_sundari","tarapith","kanyakumari","kolhapur")))
+check("Modern metros (Delhi · Mumbai · Bengaluru · Chennai · Kolkata · Hyderabad)",
+      all(k in ms for k in ("delhi","mumbai","bengaluru","chennai","kolkata","hyderabad")))
+check("Universal anchors (Greenwich · Mecca · Jerusalem · Lumbinī · BodhGayā · NYC · Tokyo · Sydney)",
+      all(k in ms for k in ("greenwich","mecca","jerusalem","lumbini","bodh_gaya","new_york","tokyo","sydney")))
+check("Mount Kailāsa + Mānasarovara present (Hayagrīva mukha)",
+      all(k in ms for k in ("kailash", "mansarovar")))
 
 # Offset identity for every meridian
 all_offsets_correct = all(
