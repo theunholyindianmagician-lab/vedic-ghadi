@@ -16,8 +16,11 @@ env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "22"
   # Google Cloud Run deploy targets (no Vercel)
+  # Region: asia-southeast1 (Singapore) — supports custom domain mappings.
+  # ghadi.lunarluxury.in is mapped to this service. Mumbai (asia-south1) was
+  # the initial home but Cloud Run domain mappings are not available there.
   GCP_PROJECT: trikala-production
-  GCP_REGION: asia-south1
+  GCP_REGION: asia-southeast1
   GCP_SERVICE: vedic-ghadi
   GCP_WIF_PROVIDER: projects/485760975792/locations/global/workloadIdentityPools/github/providers/github-actions
   GCP_SA: vedic-ghadi-ci@trikala-production.iam.gserviceaccount.com
@@ -165,7 +168,7 @@ jobs:
       - name: Run E2E against ${{ needs.deploy.outputs.service_url }}
         working-directory: frontend
         env:
-          BASE_URL: ${{ needs.deploy.outputs.service_url || 'https://vedic-ghadi-485760975792.asia-south1.run.app' }}
+          BASE_URL: ${{ needs.deploy.outputs.service_url || 'https://vedic-ghadi-485760975792.asia-southeast1.run.app' }}
         run: npx playwright test --reporter=list
       - name: Upload Playwright report on failure
         if: failure()
