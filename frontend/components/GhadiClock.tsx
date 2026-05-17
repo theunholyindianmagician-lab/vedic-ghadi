@@ -9,6 +9,17 @@ import { FormulaePanel } from "./FormulaePanel"
 import { MeridianComparison } from "./MeridianComparison"
 import { MeridianGrid } from "./MeridianGrid"
 import { SphotaSunburst } from "./SphotaSunburst"
+import dynamic from "next/dynamic"
+
+// Three.js component loaded client-side only (avoids SSR webgl issues)
+const Sphota3D = dynamic(
+  () => import("./Sphota3D").then(m => ({ default: m.Sphota3D })),
+  { ssr: false, loading: () => (
+    <div className="mt-10 p-12 text-center text-gold-600 italic border border-gold-700/40 rounded-sm bg-ink-900/40">
+      Loading 3D substrate engine…
+    </div>
+  )},
+)
 
 /**
  * 🔱 वैदिक घडी — जीवंत
@@ -17,6 +28,7 @@ import { SphotaSunburst } from "./SphotaSunburst"
  * port है, इसलिए client-side पूरा computation smoothly चलता है।
  */
 export function GhadiClock() {
+  const [mounted, setMounted] = useState(false)
   const [frozen, setFrozen] = useState<string | null>(null)
   const [stamp, setStamp] = useState<SubstrateStamp>(() => liveStamp())
 
@@ -24,12 +36,39 @@ export function GhadiClock() {
     setStamp(frozen ? frozenStamp(frozen) : liveStamp())
   }, [frozen])
 
+  // Client-only mount — avoid SSR/CSR hydration mismatch on live K values.
+  // The substrate computes K from Date.now() which differs between server-render
+  // and client-mount by ~100ms, producing a React #418 warning.
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
     let raf = 0
     const loop = () => { tick(); raf = requestAnimationFrame(loop) }
     raf = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(raf)
-  }, [tick])
+  }, [tick, mounted])
+
+  if (!mounted) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-10 sm:py-16">
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-3 text-gold-500 text-xs tracking-[0.4em] font-display">
+            <span>🔱</span>
+            <span>VEDIC GHAḌĪ</span>
+            <span>🔱</span>
+          </div>
+          <h1 className="mt-4 font-display text-3xl sm:text-4xl text-gold-200 tracking-[0.18em]">
+            वर्तमान क्षण
+          </h1>
+          <p className="mt-3 text-gold-600 italic">substrate loading…</p>
+          <div className="mt-8 inline-block w-2 h-2 rounded-full bg-gold-400 ember-dot" />
+        </div>
+      </div>
+    )
+  }
 
   const y = stamp.year_layer
   const m = stamp.month_layer
@@ -170,8 +209,8 @@ export function GhadiClock() {
       {/* सर्व-मेरिडियन — सब 84 cities, parallel table */}
       <MeridianGrid stamp={stamp} />
 
-      {/* 504 cells live visualization */}
-      <SphotaSunburst stamp={stamp} />
+      {/* 504 cells live visualization — 2D sunburst + 3D cell cloud */}
+      <SphotaVisualization stamp={stamp} />
 
       <FormulaePanel stamp={stamp} />
 
@@ -212,6 +251,34 @@ function Header({ isLive, civilDisplay, tz }: { isLive: boolean; civilDisplay: s
 }
 
 // Big helper removed — moved to MeridianComparison.tsx
+
+/** Toggle between 2D sunburst and 3D cell cloud */
+function SphotaVisualization({ stamp }: { stamp: SubstrateStamp }) {
+  const [mode, setMode] = useState<"2d" | "3d">("2d")
+  return (
+    <div>
+      <div className="mt-10 flex justify-center">
+        <div className="inline-flex rounded-sm border border-gold-700">
+          <button onClick={() => setMode("2d")}
+                  className={[
+                    "px-4 py-2 font-display tracking-wider text-xs transition-colors",
+                    mode === "2d" ? "bg-gold-500/15 text-gold-100" : "text-gold-500 hover:text-gold-300",
+                  ].join(" ")}>
+            ◯ 2D सूर्यमंडल
+          </button>
+          <button onClick={() => setMode("3d")}
+                  className={[
+                    "px-4 py-2 font-display tracking-wider text-xs transition-colors",
+                    mode === "3d" ? "bg-amber-ember/30 text-amber-100" : "text-gold-500 hover:text-gold-300",
+                  ].join(" ")}>
+            ⬢ 3D त्रिआयाम (Three.js)
+          </button>
+        </div>
+      </div>
+      {mode === "2d" ? <SphotaSunburst stamp={stamp} /> : <Sphota3D stamp={stamp} />}
+    </div>
+  )
+}
 
 function SubstrateFooter() {
   return (
