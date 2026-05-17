@@ -1,9 +1,16 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import type { SubstrateStamp, MeridianFullView, DaySubdivision } from "@/lib/substrate"
+import type { SubstrateStamp, MeridianFullView, DaySubdivision, TrimurtiId, PoleId } from "@/lib/substrate"
 
-type Pole = "aditi" | "diti" | "both"
+type Pole = PoleId | "both"
+type Trimurti = TrimurtiId
+
+const TRIMURTI_DISPLAY: Record<Trimurti, { icon: string; en: string; hi: string }> = {
+  brahma: { icon: "🌅", en: "Brahmā",    hi: "ब्रह्मा" },
+  vishnu: { icon: "☀️", en: "Viṣṇu",     hi: "विष्णु" },
+  mahesh: { icon: "🌇", en: "Maheśvara", hi: "महेश्वर" },
+}
 
 /**
  * 🔱 MeridianGrid — SAPTAMUKHI HANUMĀN cannon · APEX v5 BIPOLAR
@@ -18,6 +25,7 @@ export function MeridianGrid({ stamp }: { stamp: SubstrateStamp }) {
   const ujjainVara = stamp.meridians["ujjain"]?.vara.vara_index ?? 0
   const [query, setQuery] = useState("")
   const [pole, setPole] = useState<Pole>("aditi")
+  const [trimurti, setTrimurti] = useState<Trimurti>("brahma")
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {}
     for (const [catId] of stamp.meridian_categories) init[catId] = true
@@ -64,31 +72,33 @@ export function MeridianGrid({ stamp }: { stamp: SubstrateStamp }) {
   }
 
   const totalShown = filtered.length
-  const totalPoleViews = stamp.meridian_categories.length === 7
-    ? 84 * 2  // 168 meridian-pole sphoṭas
-    : allMeridians.length * 2
+  const totalPoleViews = allMeridians.length * 2          // 168 bipolar
+  const totalSphoTas   = allMeridians.length * 2 * 3      // 504 trimurti×bipolar
+
+  const td = TRIMURTI_DISPLAY[trimurti]
 
   return (
     <section className="mt-10 rounded-sm border border-gold-700/40 bg-ink-900/40 overflow-hidden">
       <header className="px-6 py-4 border-b border-gold-700/40">
         <div className="flex items-baseline justify-between flex-wrap gap-2">
           <h2 className="font-display tracking-[0.3em] text-gold-300 text-sm">
-            🔱 सप्तमुखी हनुमान् · APEX v5 BIPOLAR · {totalPoleViews} sphoṭas
+            🔱 सप्तमुखी · APEX v5 BIPOLAR × TRIMŪRTI · {totalSphoTas} sphoṭas
           </h2>
           <span className="text-xs text-gold-500 italic">
-            {totalShown}/{allMeridians.length} meridians ×&nbsp;
-            {pole === "both" ? "2 poles" : pole === "aditi" ? "Aditi" : "Diti"}
+            84 × 2 poles × 3 Trimurti = 504 &nbsp;·&nbsp;
+            current view: {td.icon} {td.en} × {pole === "both" ? "दोनों" : pole === "aditi" ? "Aditi" : "Diti"}
           </span>
         </div>
         <p className="mt-1 text-xs text-gold-600/80 italic">
-          <span className="text-gold-400">Aditi</span> (R* · Deva · 30/60/60/6 · 0.4s) ·&nbsp;
-          <span className="text-amber-ember">Diti</span> ((3) · Asura · 10/20/20/2 · 10.8s · ÷3³ = ×27 compression)
-          &nbsp;·&nbsp; per APEX v5 Pisano-of-Ideal = 3
+          <span className="text-gold-400">Aditi</span> (30/60/6 · 0.4s) ·&nbsp;
+          <span className="text-amber-ember">Diti</span> (10/20/2 · 10.8s · ÷3³) ·&nbsp;
+          🌅 Brahmā K · ☀️ Viṣṇu K+⅓ · 🌇 Maheśa K+⅔ &nbsp;·&nbsp; per APEX v5
         </p>
       </header>
 
-      {/* Pole toggle + search + bulk controls */}
+      {/* Trimurti + Pole toggles + search + bulk controls */}
       <div className="flex flex-wrap items-center gap-2 px-6 py-3 border-b border-gold-700/30 bg-ink-800/40">
+        <TrimurtiToggle current={trimurti} onChange={setTrimurti} />
         <PoleToggle pole={pole} onChange={setPole} />
         <input
           type="text"
@@ -134,6 +144,7 @@ export function MeridianGrid({ stamp }: { stamp: SubstrateStamp }) {
                   onToggle={() => toggleCat(catId)}
                   ujjainVara={ujjainVara}
                   pole={pole}
+                  trimurti={trimurti}
                 />
               )
             })}
@@ -148,14 +159,44 @@ export function MeridianGrid({ stamp }: { stamp: SubstrateStamp }) {
       )}
 
       <footer className="px-6 py-3 border-t border-gold-700/40 text-center text-xs text-gold-600/80">
-        84 meridians × 2 poles = 168 sphoṭas · APEX v5 Bipolar discipline ·&nbsp;
-        Pisano-of-Ideal = 3 · Liberation triples, death increments by 1
+        84 meridians × 2 poles × 3 Trimūrti = <span className="text-gold-300">504 sphoṭas</span> ·&nbsp;
+        APEX v5 Bipolar × Trimūrti discipline ·&nbsp;
+        Pisano-of-Ideal=3 · Liberation triples · Death increments by 1
       </footer>
     </section>
   )
 }
 
 // ──────────────────────────────────────────────────────────────────────────
+
+function TrimurtiToggle({ current, onChange }: { current: Trimurti; onChange: (t: Trimurti) => void }) {
+  const opts: Trimurti[] = ["brahma", "vishnu", "mahesh"]
+  return (
+    <div className="inline-flex rounded-sm border border-gold-700 overflow-hidden">
+      {opts.map((t) => {
+        const td = TRIMURTI_DISPLAY[t]
+        const active = current === t
+        const accent = t === "brahma" ? "bg-amber-ember/15 text-amber-100"
+                     : t === "vishnu" ? "bg-gold-500/15 text-gold-100"
+                     :                  "bg-amber-deep/40 text-gold-200"
+        return (
+          <button
+            key={t}
+            onClick={() => onChange(t)}
+            className={[
+              "px-3 py-1.5 text-xs font-display tracking-wider transition-colors flex items-center gap-1.5",
+              active ? accent : "text-gold-500 hover:text-gold-300",
+            ].join(" ")}
+            title={td.en}
+          >
+            <span>{td.icon}</span>
+            <span>{td.hi}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
 function PoleToggle({ pole, onChange }: { pole: Pole; onChange: (p: Pole) => void }) {
   const opts: { value: Pole; label: string; sub: string }[] = [
@@ -220,7 +261,7 @@ function Header({ pole }: { pole: Pole }) {
 }
 
 function CategoryGroup({
-  catId, label, rows, totalInCat, open, onToggle, ujjainVara, pole,
+  catId, label, rows, totalInCat, open, onToggle, ujjainVara, pole, trimurti,
 }: {
   catId: string
   label: string
@@ -230,6 +271,7 @@ function CategoryGroup({
   onToggle: () => void
   ujjainVara: number
   pole: Pole
+  trimurti: Trimurti
 }) {
   const showing = rows.length
   const colSpan = pole === "both" ? 10 : 8
@@ -251,15 +293,15 @@ function CategoryGroup({
         </td>
       </tr>
       {open && rows.map(m => (
-        <MeridianRow key={`${catId}-${m.id}`} m={m} ujjainVara={ujjainVara} pole={pole} />
+        <MeridianRow key={`${catId}-${m.id}`} m={m} ujjainVara={ujjainVara} pole={pole} trimurti={trimurti} />
       ))}
     </>
   )
 }
 
 function MeridianRow({
-  m, ujjainVara, pole,
-}: { m: MeridianFullView; ujjainVara: number; pole: Pole }) {
+  m, ujjainVara, pole, trimurti,
+}: { m: MeridianFullView; ujjainVara: number; pole: Pole; trimurti: Trimurti }) {
   const v = m.vara
   const isUjjain = m.id === "ujjain"
   const isKamakhya = m.id === "kamakhya"
@@ -306,13 +348,15 @@ function MeridianRow({
           {m.offset_from_ujjain_min >= 0 ? "+" : ""}{m.offset_from_ujjain_min.toFixed(0)}m
         </td>
         {varaCell}
-        <PoleCells d={m.day_subdivision_aditi} tone="aditi" />
-        <PoleCells d={m.day_subdivision_diti} tone="diti" />
+        <PoleCells d={m.trimurti.aditi[trimurti].day_subdivision} tone="aditi" />
+        <PoleCells d={m.trimurti.diti[trimurti].day_subdivision} tone="diti" />
       </tr>
     )
   }
 
-  const d = pole === "diti" ? m.day_subdivision_diti : m.day_subdivision_aditi
+  // Pull from Trimurti × Pole matrix (504 sphoṭa cell)
+  const view = m.trimurti[pole][trimurti]
+  const d = view.day_subdivision
   const ghatiMax = pole === "diti" ? 20 : 60
   const muhurtaMax = pole === "diti" ? 10 : 30
   const pranaMax = pole === "diti" ? 2 : 6

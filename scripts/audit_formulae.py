@@ -489,7 +489,65 @@ check("Diti μ = ⌊(Aditi μ − 1) / 3⌋ + 1 holds for all 84 meridians",
       all_consistent)
 
 
-section("12c · Parallel meridian views (Ujjayinī ⟷ Kāmākhyā)")
+section("12c · APEX v5 TRIMŪRTI × BIPOLAR — 504 sphoṭas")
+# ═══════════════════════════════════════════════════════════════════════════
+from vedic_ghadi.substrate import TRIMURTI_OPERATORS
+check("3 Trimūrti operators (Brahmā · Viṣṇu · Maheśa)",
+      len(TRIMURTI_OPERATORS) == 3)
+check("Phase offsets (0, 1/3, 2/3)",
+      [op[4] for op in TRIMURTI_OPERATORS] == [0.0, 1.0/3.0, 2.0/3.0])
+check("Offsets sum to 1.0 (full day cycle complete)",
+      abs(sum(op[4] for op in TRIMURTI_OPERATORS) - 1.0) < 1e-12)
+check("trimurti_at_ujjain block in stamp",
+      "trimurti_at_ujjain" in stamp)
+check("trimurti_operators list in stamp",
+      "trimurti_operators" in stamp and len(stamp["trimurti_operators"]) == 3)
+
+# Per-meridian trimurti block — verify all 84 are complete
+all_have_trimurti = all(
+    "trimurti" in m
+    and set(m["trimurti"].keys()) == {"aditi", "diti"}
+    and all(set(m["trimurti"][p].keys()) == {"brahma", "vishnu", "mahesh"}
+            for p in ("aditi", "diti"))
+    for m in ms.values()
+)
+check("All 84 meridians have complete Trimurti × Bipolar block",
+      all_have_trimurti)
+
+# Total sphoṭa count = 504
+total_sphotas = sum(
+    1
+    for m in ms.values()
+    for pole in m["trimurti"]
+    for op in m["trimurti"][pole]
+)
+check(f"Total cascade-view sphoṭas = 504 (got {total_sphotas})",
+      total_sphotas == 504)
+
+# Brahmā × Aditi = existing day_subdivision_aditi (unshifted reference)
+all_brahma_consistent = all(
+    m["trimurti"]["aditi"]["brahma"]["day_subdivision"]["muhurta_index"]
+    == m["day_subdivision_aditi"]["muhurta_index"]
+    for m in ms.values()
+)
+check("Brahmā × Aditi muhūrta = existing day_subdivision_aditi (consistency)",
+      all_brahma_consistent)
+
+# Verify the K-shifts at Ujjain anchor
+ujjain_tv = ms["ujjain"]["trimurti"]["aditi"]
+# At K_ujjain ≈ 1872712.648, frac=0.648:
+#   Brahmā: K shift +0    → μ = floor(0.648 * 30) + 1 = 20
+#   Viṣṇu:  K shift +1/3  → frac = (0.648 + 0.333) % 1 = 0.981 → μ = floor(0.981 * 30) + 1 = 30
+#   Maheśa: K shift +2/3  → frac = (0.648 + 0.667) % 1 = 0.315 → μ = 10
+check(f"Brahmā × Aditi @ Ujjain μ = 20 (got {ujjain_tv['brahma']['day_subdivision']['muhurta_index']})",
+      ujjain_tv["brahma"]["day_subdivision"]["muhurta_index"] == 20)
+check(f"Viṣṇu × Aditi @ Ujjain μ = 30 (got {ujjain_tv['vishnu']['day_subdivision']['muhurta_index']})",
+      ujjain_tv["vishnu"]["day_subdivision"]["muhurta_index"] == 30)
+check(f"Maheśa × Aditi @ Ujjain μ = 10 (got {ujjain_tv['mahesh']['day_subdivision']['muhurta_index']})",
+      ujjain_tv["mahesh"]["day_subdivision"]["muhurta_index"] == 10)
+
+
+section("12d · Parallel meridian views (Ujjayinī ⟷ Kāmākhyā)")
 # ═══════════════════════════════════════════════════════════════════════════
 bm = stamp["by_meridian"]
 check("by_meridian.ujjain present",  "ujjain" in bm)
@@ -512,7 +570,7 @@ check("Astronomical layers NOT duplicated (meridian-independent)",
       "month_kamakhya" not in stamp and "tithi_kamakhya" not in stamp)
 
 
-section("12d · Edge cases & boundaries")
+section("12e · Edge cases & boundaries")
 # ═══════════════════════════════════════════════════════════════════════════
 # Day boundary: at IST midnight, did we cross to next civil day correctly?
 late = ghadi_at(2026, 5, 17, 23, 59, 59.999, 5.5)

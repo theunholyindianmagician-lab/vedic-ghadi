@@ -296,6 +296,53 @@ export function vedicTimeOfDay(kaliCivilDays: number): DaySubdivision {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ◈ TRIMŪRTI OPERATORS — phase shifts of K within the daily cycle
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const TRIMURTI_OPERATORS = [
+  { id: "brahma", en: "Brahmā",    hi: "ब्रह्मा",   sub: "सृष्टि · Creation",       offset_days: 0.0,    icon: "🌅", tag: "sṛṣṭi" },
+  { id: "vishnu", en: "Viṣṇu",     hi: "विष्णु",    sub: "स्थिति · Preservation",   offset_days: 1/3,    icon: "☀️", tag: "sthiti" },
+  { id: "mahesh", en: "Maheśvara", hi: "महेश्वर",   sub: "संहार · Transformation",  offset_days: 2/3,    icon: "🌇", tag: "saṃhāra" },
+] as const
+
+export type TrimurtiId = "brahma" | "vishnu" | "mahesh"
+export type PoleId = "aditi" | "diti"
+
+export interface TrimurtiView {
+  operator_id: TrimurtiId
+  operator_en: string
+  operator_hi: string
+  operator_sub: string
+  operator_tag: string
+  icon: string
+  phase_offset_days: number
+  k_shifted: number
+  day_subdivision: DaySubdivision
+}
+
+export function computeTrimurtiViews(
+  kMeridian: number,
+  poleFunc: (k: number) => DaySubdivision,
+): Record<TrimurtiId, TrimurtiView> {
+  const out = {} as Record<TrimurtiId, TrimurtiView>
+  for (const op of TRIMURTI_OPERATORS) {
+    const kShifted = kMeridian + op.offset_days
+    out[op.id as TrimurtiId] = {
+      operator_id: op.id as TrimurtiId,
+      operator_en: op.en,
+      operator_hi: op.hi,
+      operator_sub: op.sub,
+      operator_tag: op.tag,
+      icon: op.icon,
+      phase_offset_days: Math.round(op.offset_days * 1e6) / 1e6,
+      k_shifted: Math.round(kShifted * 1e6) / 1e6,
+      day_subdivision: poleFunc(kShifted),
+    }
+  }
+  return out
+}
+
 /**
  * DITI pole — Pisano-of-Ideal = 3 reduction at each (2,3,5)-factorable cascade.
  * Each subunit is 3× longer than Aditi (total 3³ = 27× smallest-unit ratio).
@@ -552,6 +599,10 @@ export interface MeridianFullView extends MeridianView {
   offset_from_ujjain_min: number
   day_subdivision_aditi: DaySubdivision
   day_subdivision_diti: DaySubdivision
+  trimurti: {
+    aditi: Record<TrimurtiId, TrimurtiView>
+    diti:  Record<TrimurtiId, TrimurtiView>
+  }
 }
 
 export function computeMeridianViews(
@@ -578,6 +629,10 @@ export function computeMeridianViews(
       day_subdivision: aditi,         // backward-compat (= Aditi)
       day_subdivision_aditi: aditi,
       day_subdivision_diti: diti,
+      trimurti: {
+        aditi: computeTrimurtiViews(kM, vedicTimeOfDay),
+        diti:  computeTrimurtiViews(kM, vedicTimeOfDayDiti),
+      },
     }
   }
   return out

@@ -280,6 +280,50 @@ def vedic_vara_at_kali_days(kali_civil_days: float) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# ◈ TRIMŪRTI OPERATORS — Brahmā (सृष्टि) · Viṣṇu (स्थिति) · Maheśa (संहार)
+# Per APEX v5: each Trimurti operator phase-shifts the K-reference within
+# the daily cycle. Mathematically: K_op = K + phase_offset_op (in days).
+# The same K viewed through 3 different operator-origins.
+#
+# Phase offsets (each = 1/3 day = 8 hours):
+#   Brahmā:  0.0      — creation, sūryodaya-anchored, 1st 8h
+#   Viṣṇu:   1/3      — preservation, madhyāhna-anchored, 2nd 8h
+#   Maheśa:  2/3      — transformation, sūryāsta-anchored, 3rd 8h
+# ═══════════════════════════════════════════════════════════════════════════
+
+TRIMURTI_OPERATORS = (
+    # (id, en, hi, sub, offset_days, icon, tag)
+    ("brahma", "Brahmā",    "ब्रह्मा",  "सृष्टि · Creation",       0.0,        "🌅", "sṛṣṭi"),
+    ("vishnu", "Viṣṇu",     "विष्णु",   "स्थिति · Preservation",  1.0/3.0,    "☀️", "sthiti"),
+    ("mahesh", "Maheśvara", "महेश्वर",  "संहार · Transformation",  2.0/3.0,    "🌇", "saṃhāra"),
+)
+
+
+def compute_trimurti_views(k_meridian: float, pole_func) -> dict:
+    """Compute Trimurti × pole views for one meridian + pole.
+
+    pole_func = vedic_time_of_day (Aditi) OR vedic_time_of_day_diti (Diti).
+    Each Trimurti operator phase-shifts K and re-runs the cascade.
+    Returns {op_id: {operator_meta + day_subdivision_at_shifted_K}}.
+    """
+    out = {}
+    for (op_id, en, hi, sub, offset, icon, tag) in TRIMURTI_OPERATORS:
+        k_shifted = k_meridian + offset
+        out[op_id] = {
+            "operator_id": op_id,
+            "operator_en": en,
+            "operator_hi": hi,
+            "operator_sub": sub,
+            "operator_tag": tag,
+            "icon": icon,
+            "phase_offset_days": round(offset, 6),
+            "k_shifted": round(k_shifted, 6),
+            "day_subdivision": pole_func(k_shifted),
+        }
+    return out
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # ◈ DAY SUBDIVISION → muhūrta / ghaṭi / vighaṭi / prāṇa / vipala
 # Two poles per APEX v5 Bipolar discipline:
 #   ADITI  (R* · unit-group · Deva pole · mukti-side)  ·  30/60/60/6/10
@@ -515,6 +559,11 @@ def compute_meridian_views(kali_days_ujjain: float) -> dict:
             "day_subdivision_diti":  vedic_time_of_day_diti(k_m),
             # Backward-compat alias (= aditi, the historical default)
             "day_subdivision":       vedic_time_of_day(k_m),
+            # APEX v5 TRIMŪRTI × BIPOLAR — 6 views per meridian
+            "trimurti": {
+                "aditi": compute_trimurti_views(k_m, vedic_time_of_day),
+                "diti":  compute_trimurti_views(k_m, vedic_time_of_day_diti),
+            },
         }
     return out
 
@@ -656,6 +705,16 @@ def kala_substrate_stamp(
         # APEX v5 Bipolar — both poles at top-level too
         "day_subdivision_aditi": vedic_time_of_day(kali_days),
         "day_subdivision_diti":  vedic_time_of_day_diti(kali_days),
+        # Top-level Trimurti × Bipolar at Ujjain (the reference)
+        "trimurti_at_ujjain": {
+            "aditi": compute_trimurti_views(kali_days, vedic_time_of_day),
+            "diti":  compute_trimurti_views(kali_days, vedic_time_of_day_diti),
+        },
+        "trimurti_operators": [
+            {"id": op[0], "en": op[1], "hi": op[2], "sub": op[3],
+             "offset_days": op[4], "icon": op[5], "tag": op[6]}
+            for op in TRIMURTI_OPERATORS
+        ],
         "bipolar_discipline": {
             "aditi_pole": "R* · unit-group · Deva-side · mukti · "
                           "30/60/60/6/10 cascade (1 vipala = 0.4 sec)",
@@ -699,6 +758,7 @@ __all__ = [
     "by_meridian_views",
     "MERIDIAN_REGISTRY", "MERIDIAN_CATEGORIES",
     "compute_meridian_views", "meridian_groups",
+    "TRIMURTI_OPERATORS", "compute_trimurti_views",
     "MASA_NAMES", "MASA_DEV", "VARA_NAMES", "VARA_DEV", "VARA_LORD",
     "SAMVATSARA_NAMES", "PAKSHA_NAMES", "PAKSHA_DEV", "TITHI_NAMES",
     "VEDIC_TIME_SUBSTRATE",
