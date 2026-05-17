@@ -101,20 +101,64 @@ test.describe("Vedic Ghaḍī live UI", () => {
   })
 
   test("9 · SphoṭaSunburst renders with ॐ center + 504 counter", async ({ page }) => {
+    // Default is now DIAL — click 2D toggle to switch into sunburst
+    await page.locator('button:has-text("2D सूर्यमंडल")').first().click()
+    await page.waitForTimeout(500)
     await expect(page.getByText("SPHOṬA SUNBURST").first()).toBeVisible()
     // The central seal SVG text "504" should be present
     const sunburst = page.locator("svg").filter({ hasText: "504" }).first()
     await expect(sunburst).toBeVisible()
   })
 
-  test("10 · 2D/3D toggle switches visualization", async ({ page }) => {
-    const toggle3d = page.locator('button:has-text("3D")').first()
-    await expect(toggle3d).toBeVisible()
-    await toggle3d.click()
-    // Three.js Canvas should appear
+  test("10 · 3D Three.js toggle mounts a <canvas>", async ({ page }) => {
+    // Specifically click the "3D Three.js" button (not the dial which also has "3D" in name)
+    const toggleThree = page.locator('button:has-text("Three.js")').first()
+    await expect(toggleThree).toBeVisible()
+    await toggleThree.click()
+    // Canvas should appear (render contents are R3F-broken — we only verify mount)
     await expect(page.locator("canvas").first()).toBeVisible({ timeout: 10_000 })
-    // Toggle back to 2D
-    await page.locator('button:has-text("2D")').first().click()
+    // Toggle back to dial default
+    await page.locator('button:has-text("3D यन्त्र-घटिका")').first().click()
+  })
+
+  test("10a · 3D DIAL is default + 60-ghaṭi Aditi ring + K readout", async ({ page }) => {
+    // Dial mode should be the new default (no click needed)
+    const dial = page.locator('[data-component="sphota-3d-dial"]')
+    await expect(dial).toBeVisible({ timeout: 15_000 })
+
+    // 60 ghaṭi tick marks on the Aditi outer rotor
+    const ghatiTicks = page.locator('svg [data-tick="ghati-aditi"]')
+    await expect(ghatiTicks).toHaveCount(60)
+
+    // 27 nakṣatra segments
+    const naksWedges = page.locator('svg [data-tick="nakshatra"]')
+    await expect(naksWedges).toHaveCount(27)
+
+    // 30 tithi wedges
+    const tithiWedges = page.locator('svg [data-tick="tithi"]')
+    await expect(tithiWedges).toHaveCount(30)
+
+    // K digital readout with 6-decimal precision
+    const kReadout = page.locator('[data-readout="k"]').first()
+    await expect(kReadout).toBeVisible()
+    const kText = (await kReadout.innerText()).trim()
+    expect(kText).toMatch(/^\d[\d,]*\.\d{6}$/)
+
+    // Pakṣa label (śukla or kṛṣṇa)
+    const paksha = page.locator('[data-readout="paksha"]').first()
+    await expect(paksha).toContainText(/(शुक्ल|कृष्ण)-पक्ष/)
+
+    // Vāra-lord planet readout
+    const varaLord = page.locator('[data-readout="vara-lord"]').first()
+    await expect(varaLord).toContainText(/-वार/)
+
+    // Saṃvatsara name (currently Parābhava per the public almanac)
+    const samv = page.locator('[data-readout="samvatsara-name"]').first()
+    await expect(samv).toContainText("Parābhava")
+
+    // Kali year readout
+    const kaliYear = page.locator('[data-readout="kali-year"]').first()
+    await expect(kaliYear).toContainText("5,127")
   })
 
   test("10b · ISO mode renders 504 SVG cells (pure-SVG fallback)", async ({ page }) => {

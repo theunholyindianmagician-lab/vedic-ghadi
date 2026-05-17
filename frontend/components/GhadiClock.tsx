@@ -31,6 +31,16 @@ const Sphota3DIso = dynamic(
   )},
 )
 
+// 3D analog DIAL — 34 complications (beats Patek Grandmaster Chime's 20)
+const Sphota3DDial = dynamic(
+  () => import("./Sphota3DDial").then(m => ({ default: m.Sphota3DDial })),
+  { ssr: false, loading: () => (
+    <div className="mt-10 p-12 text-center text-gold-600 italic border border-gold-700/40 rounded-sm bg-ink-900/40">
+      Loading 3D dial complication…
+    </div>
+  )},
+)
+
 /**
  * 🔱 वैदिक घडी — जीवंत
  *
@@ -262,34 +272,39 @@ function Header({ isLive, civilDisplay, tz }: { isLive: boolean; civilDisplay: s
 
 // Big helper removed — moved to MeridianComparison.tsx
 
-/** Toggle between 2D sunburst, 3D Three.js cloud, and pure-SVG isometric projection */
+/** Toggle: 3D DIAL (default) · 2D sunburst · 3D Three.js (broken) · pure-SVG iso */
 function SphotaVisualization({ stamp }: { stamp: SubstrateStamp }) {
-  const [mode, setMode] = useState<"2d" | "3d" | "iso">("2d")
+  const [mode, setMode] = useState<"dial" | "2d" | "3d" | "iso">("dial")
   const btnCls = (active: boolean, accent: string) => [
     "px-4 py-2 font-display tracking-wider text-xs transition-colors",
-    active ? `${accent}` : "text-gold-500 hover:text-gold-300",
+    active ? accent : "text-gold-500 hover:text-gold-300",
   ].join(" ")
   return (
     <div>
       <div className="mt-10 flex justify-center">
-        <div className="inline-flex rounded-sm border border-gold-700">
+        <div className="inline-flex rounded-sm border border-gold-700 flex-wrap">
+          <button onClick={() => setMode("dial")}
+                  className={btnCls(mode === "dial", "bg-gold-500/20 text-gold-100")}>
+            ⊙ 3D यन्त्र-घटिका (34 complications)
+          </button>
           <button onClick={() => setMode("2d")}
                   className={btnCls(mode === "2d", "bg-gold-500/15 text-gold-100")}>
             ◯ 2D सूर्यमंडल
           </button>
-          <button onClick={() => setMode("3d")}
-                  className={btnCls(mode === "3d", "bg-amber-ember/30 text-amber-100")}>
-            ⬢ 3D त्रिआयाम (Three.js)
-          </button>
           <button onClick={() => setMode("iso")}
                   className={btnCls(mode === "iso", "bg-amber-ember/30 text-amber-100")}>
-            ⬡ ISO समत्रिमिति (SVG)
+            ⬡ ISO समत्रिमिति
+          </button>
+          <button onClick={() => setMode("3d")}
+                  className={btnCls(mode === "3d", "bg-amber-ember/30 text-amber-100")}>
+            ⬢ 3D Three.js
           </button>
         </div>
       </div>
-      {mode === "2d" && <SphotaSunburst stamp={stamp} />}
-      {mode === "3d" && <Sphota3D stamp={stamp} />}
-      {mode === "iso" && <Sphota3DIso stamp={stamp} />}
+      {mode === "dial" && <Sphota3DDial stamp={stamp} activeMeridianId="kamakhya" />}
+      {mode === "2d"   && <SphotaSunburst stamp={stamp} />}
+      {mode === "iso"  && <Sphota3DIso stamp={stamp} />}
+      {mode === "3d"   && <Sphota3D stamp={stamp} />}
     </div>
   )
 }
