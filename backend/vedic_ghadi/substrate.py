@@ -340,21 +340,28 @@ def compute_trimurti_views(k_meridian: float, pole_func) -> dict:
         NAKSHATRA_NAMES,
     )
     from .vargas import compute_all_vargas
+    from .ashtakavarga import compute_bhinna_sarva
 
     out = {}
     for (op_id, en, hi, sub, offset, icon, tag) in TRIMURTI_OPERATORS:
         k_shifted = k_meridian + offset
 
-        # 9 graha nakṣatras (compact list of indices 1..27)
+        # 9 graha longitudes + nakṣatras (compact: 1..27 indices)
+        graha_lons = {}
         graha_naks = []
         for graha in GRAHA_NAMES:
             lon_g = vedic_mean_longitude(graha, k_shifted)
+            graha_lons[graha] = lon_g
             naks_idx = int(lon_g / (360.0 / 27.0)) % 27
             graha_naks.append(naks_idx + 1)         # 1-indexed
 
-        # Moon's vargas — 21 sign indices [0..11] for D1, D2, ..., D108
-        moon_lon = vedic_mean_longitude("Moon", k_shifted)
-        vargas_moon = compute_all_vargas(moon_lon)
+        # Per-graha 21 vargas — 9 × 21 = 189 sign indices per cell
+        vargas_grahas = {
+            g: compute_all_vargas(graha_lons[g]) for g in GRAHA_NAMES
+        }
+
+        # Aṣṭakavarga — bhinna (7 × 12) + sarva (12) + total 337-class
+        ashtakavarga = compute_bhinna_sarva(graha_lons)
 
         out[op_id] = {
             "operator_id": op_id,
@@ -366,14 +373,17 @@ def compute_trimurti_views(k_meridian: float, pole_func) -> dict:
             "phase_offset_days": round(offset, 6),
             "k_shifted": round(k_shifted, 6),
             "day_subdivision": pole_func(k_shifted),
-            # Full pañcāṅga at this cell's K_shifted (v1.7.0)
+            # v1.7.0 — pañcāṅga at this cell's K_shifted
             "nakshatra": nakshatra_at_kali_days(k_shifted),
             "yoga":      yoga_at_kali_days(k_shifted),
             "karana":    karana_at_kali_days(k_shifted),
-            # NEW v1.8.0 — full cosmic snapshot per cell (compact ints)
-            "graha_nakshatras": graha_naks,    # [9 ints, each 1..27]
-            "vargas_moon":      vargas_moon,    # [21 ints, each 0..11]
-            "moon_lon_deg":     round(moon_lon, 4),
+            # v1.8.0 — full cosmic snapshot (compact ints)
+            "graha_nakshatras": graha_naks,                # [9 × nak-idx 1..27]
+            "vargas_moon":      vargas_grahas["Moon"],      # back-compat
+            "moon_lon_deg":     round(graha_lons["Moon"], 4),
+            # v1.9.0 — per-graha vargas + Aṣṭakavarga
+            "vargas_grahas":    vargas_grahas,              # {graha: [21 sign-idx]}
+            "ashtakavarga":     ashtakavarga,               # {bhinna, sarva, sarva_total}
         }
     return out
 

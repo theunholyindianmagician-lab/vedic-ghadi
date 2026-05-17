@@ -350,6 +350,9 @@ export interface TrimurtiView {
   graha_nakshatras: number[]    // [9 ints, each 1..27]
   vargas_moon: number[]          // [21 ints, each 0..11]
   moon_lon_deg: number
+  // v1.9.0 — per-graha vargas + Aṣṭakavarga
+  vargas_grahas: Record<string, number[]>   // {graha: [21 sign-idx]}
+  ashtakavarga: AshtakavargaResult
 }
 
 export function computeTrimurtiViews(
@@ -360,17 +363,27 @@ export function computeTrimurtiViews(
   for (const op of TRIMURTI_OPERATORS) {
     const kShifted = kMeridian + op.offset_days
 
-    // 9 graha nakṣatras (compact: 1..27 indices)
+    // 9 graha longitudes + nakṣatras
+    const grahaLons: Record<string, number> = {}
     const grahaNaks: number[] = []
     for (const graha of GRAHA_NAMES) {
       const lonG = vedicMeanLongitude(graha, kShifted)
+      grahaLons[graha] = lonG
       const naksIdx = Math.floor(lonG / (360.0 / 27.0)) % 27
       grahaNaks.push(((naksIdx % 27) + 27) % 27 + 1)
     }
 
-    // Moon's 21 vargas (compact: 0..11 sign indices)
-    const moonLon = vedicMeanLongitude("Moon", kShifted)
-    const vargasMoon = computeAllVargas(moonLon)
+    // Per-graha 21 vargas
+    const vargasGrahas: Record<string, number[]> = {}
+    for (const graha of GRAHA_NAMES) {
+      vargasGrahas[graha] = computeAllVargas(grahaLons[graha])
+    }
+
+    // Aṣṭakavarga from 9 graha longitudes
+    const ashtakavarga = computeBhinnaSarva(grahaLons)
+
+    const moonLon = grahaLons["Moon"]
+    const vargasMoon = vargasGrahas["Moon"]
 
     out[op.id as TrimurtiId] = {
       operator_id: op.id as TrimurtiId,
@@ -388,6 +401,8 @@ export function computeTrimurtiViews(
       graha_nakshatras: grahaNaks,
       vargas_moon: vargasMoon,
       moon_lon_deg: Math.round(moonLon * 1e4) / 1e4,
+      vargas_grahas: vargasGrahas,
+      ashtakavarga,
     }
   }
   return out
@@ -447,7 +462,8 @@ export interface YearLayer {
 import type { NakshatraLayer, YogaLayer, KaranaLayer } from "./panchanga.ts"
 import { nakshatraAtKaliDays, yogaAtKaliDays, karanaAtKaliDays } from "./panchanga.ts"
 import { computeAllVargas, VARGA_LIST, SIGN_NAMES, SIGN_DEV, SIGN_GLYPH } from "./vargas.ts"
-export type { NakshatraLayer, YogaLayer, KaranaLayer }
+import { computeBhinnaSarva, type AshtakavargaResult } from "./ashtakavarga.ts"
+export type { NakshatraLayer, YogaLayer, KaranaLayer, AshtakavargaResult }
 export { VARGA_LIST, SIGN_NAMES, SIGN_DEV, SIGN_GLYPH } from "./vargas.ts"
 
 export interface MeridianView {

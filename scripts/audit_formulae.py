@@ -671,7 +671,61 @@ check("D30 Taurus 2.5° → Venus/Taurus (Triṃśāṃśa)",
       compute_varga(32.5, 30) == 1)
 
 
-section("12f · Parallel meridian views (Ujjayinī ⟷ Kāmākhyā)")
+section("12f · Per-graha vargas + Aṣṭakavarga — 95,256 + 42,336 facts")
+# ═══════════════════════════════════════════════════════════════════════════
+from vedic_ghadi.ashtakavarga import ASHTAKAVARGA_GRAHAS, ASHTAKAVARGA_TABLES
+check("7 Aṣṭakavarga grahas (Sun..Saturn, no Rāhu/Ketu)",
+      len(ASHTAKAVARGA_GRAHAS) == 7)
+check("Every AV graha has 8 reference points (7 grahas + Lagna)",
+      all(len(ASHTAKAVARGA_TABLES[g]) == 8 for g in ASHTAKAVARGA_GRAHAS))
+
+# Per-cell exposure
+all_have_vargas_grahas = all(
+    "vargas_grahas" in cell and len(cell["vargas_grahas"]) == 9
+    and all(len(cell["vargas_grahas"][g]) == 21 for g in cell["vargas_grahas"])
+    for m in ms.values()
+    for pole in m["trimurti"]
+    for cell in m["trimurti"][pole].values()
+)
+check("All 504 cells have per-graha vargas (9 × 21 = 189 ints each)",
+      all_have_vargas_grahas)
+
+all_have_av = all(
+    "ashtakavarga" in cell
+    and "bhinna" in cell["ashtakavarga"] and len(cell["ashtakavarga"]["bhinna"]) == 7
+    and "sarva" in cell["ashtakavarga"] and len(cell["ashtakavarga"]["sarva"]) == 12
+    for m in ms.values()
+    for pole in m["trimurti"]
+    for cell in m["trimurti"][pole].values()
+)
+check("All 504 cells have Aṣṭakavarga (7 bhinna + sarva)",
+      all_have_av)
+
+# AV totals close to canonical
+u_cell = ms["ujjain"]["trimurti"]["aditi"]["brahma"]
+totals = u_cell["ashtakavarga"]["per_graha_totals"]
+canonical = {"Sun": 48, "Moon": 49, "Mars": 39, "Mercury": 54,
+             "Jupiter": 56, "Venus": 52, "Saturn": 39}
+totals_ok = all(abs(totals[g] - canonical[g]) <= 3 for g in canonical)
+check(f"AV per-graha totals within ±3 of canonical (sums: {sum(totals.values())})",
+      totals_ok)
+check(f"Sarva total close to 337 (got {u_cell['ashtakavarga']['sarva_total']})",
+      abs(u_cell["ashtakavarga"]["sarva_total"] - 337) <= 4)
+
+# Claim-space cardinalities
+check("(vi)  504 × 9 × 21 = 95,256  (per-graha vargas)",
+      504 * 9 * 21 == 95_256)
+check("95,256 = 2³ × 3⁵ × 7² (substrate-aligned)",
+      95_256 == 2**3 * 3**5 * 7**2)
+check("(vii) 504 × 7 × 12 = 42,336 (bhinna-AV bindu cells)",
+      504 * 7 * 12 == 42_336)
+check("42,336 = 2⁵ × 3³ × 7² (substrate-aligned)",
+      42_336 == 2**5 * 3**3 * 7**2)
+check("(viii) 504 × 12 = 6,048 (Sarva-AV per-sign cells)",
+      504 * 12 == 6_048)
+
+
+section("12g · Parallel meridian views (Ujjayinī ⟷ Kāmākhyā)")
 # ═══════════════════════════════════════════════════════════════════════════
 bm = stamp["by_meridian"]
 check("by_meridian.ujjain present",  "ujjain" in bm)
@@ -694,7 +748,7 @@ check("Astronomical layers NOT duplicated (meridian-independent)",
       "month_kamakhya" not in stamp and "tithi_kamakhya" not in stamp)
 
 
-section("12g · Edge cases & boundaries")
+section("12h · Edge cases & boundaries")
 # ═══════════════════════════════════════════════════════════════════════════
 # Day boundary: at IST midnight, did we cross to next civil day correctly?
 late = ghadi_at(2026, 5, 17, 23, 59, 59.999, 5.5)

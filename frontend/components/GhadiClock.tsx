@@ -8,6 +8,7 @@ import { TimeMachine } from "./TimeMachine"
 import { FormulaePanel } from "./FormulaePanel"
 import { MeridianComparison } from "./MeridianComparison"
 import { MeridianGrid } from "./MeridianGrid"
+import { SphotaSunburst } from "./SphotaSunburst"
 
 /**
  * 🔱 वैदिक घडी — जीवंत
@@ -166,8 +167,11 @@ export function GhadiClock() {
       {/* दोनों meridian primary — Ujjayinī (Sūrya Siddhānta) ⟷ Kāmākhyā (KAAL) */}
       <MeridianComparison bm={stamp.by_meridian} />
 
-      {/* सर्व-मेरिडियन — सब 12 cities, parallel table */}
+      {/* सर्व-मेरिडियन — सब 84 cities, parallel table */}
       <MeridianGrid stamp={stamp} />
+
+      {/* 504 cells live visualization */}
+      <SphotaSunburst stamp={stamp} />
 
       <FormulaePanel stamp={stamp} />
 
