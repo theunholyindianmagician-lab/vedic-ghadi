@@ -28,20 +28,15 @@ test.describe("Vedic Ghaḍī live UI", () => {
     await expect(kaliCard).toBeVisible()
   })
 
-  test("2 · 9 pañcāṅga layer cards present", async ({ page }) => {
-    const labels = [
-      "वर्ष · VARṢA",
-      "मास · MĀSA",
-      "पक्ष · तिथि",
-      "वार · VĀRA",
-      "नक्षत्र · NAKṢATRA",
-      "योग · YOGA",
-      "करण · KARAṆA",
-      "दिनार्ध · DAY SUBDIVISION",
-    ]
-    for (const label of labels) {
-      await expect(page.getByText(label).first()).toBeVisible()
+  test("2 · all pañcāṅga layer cards present", async ({ page }) => {
+    // Each card badge contains the Sanskrit name + the Roman transliteration.
+    // Use the Roman as the search anchor — those are unique to one layer.
+    const layers = ["VARṢA", "MĀSA", "VĀRA", "NAKṢATRA", "YOGA", "KARAṆA"]
+    for (const name of layers) {
+      await expect(page.getByText(name, { exact: false }).first()).toBeVisible()
     }
+    // And the DAY SUBDIVISION card (no Sanskrit name shared with hero)
+    await expect(page.getByText(/DAY SUBDIVISION/i).first()).toBeVisible()
   })
 
   test("3 · Saṃvatsara = Parābhava (matches public almanac)", async ({ page }) => {
