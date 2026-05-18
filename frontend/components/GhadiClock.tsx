@@ -90,7 +90,7 @@ export function GhadiClock() {
           <h1 className="mt-4 font-display text-3xl sm:text-4xl text-gold-200 tracking-[0.18em]">
             वर्तमान क्षण
           </h1>
-          <p className="mt-3 text-gold-600 italic">substrate loading…<br/><span className="text-[10px]">v1.9.x · auto-deploy verified</span></p>
+          <p className="mt-3 text-gold-500 italic">substrate loading…</p>
           <div className="mt-8 inline-block w-2 h-2 rounded-full bg-gold-400 ember-dot" />
         </div>
       </div>
@@ -113,26 +113,33 @@ export function GhadiClock() {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-10 sm:py-16">
       <Header isLive={!frozen} civilDisplay={civilDisplay} tz={ci.tz_h} />
 
-      <div className="mt-10 grid lg:grid-cols-2 gap-10 items-start">
-        {/* बायाँ स्तम्भ: redesigned dial (4 rings + composite Trimūrti + sap­tamukhi panel)
-            + horizontal chip strip below + युगादि origin caption */}
-        <div className="flex flex-col items-center">
-          <div className="w-full max-w-[560px] mx-auto">
-            <Sphota3DDial stamp={stamp} activeMeridianId="kamakhya" size={480} />
-            <DialReadoutStrip stamp={stamp} activeMeridianId="kamakhya" />
-          </div>
+      {/* ── HERO: dial as single-column focal element (IA reflow per audit) ── */}
+      <div className="mt-10 flex justify-center">
+        <div className="wake-dial w-full max-w-[560px] flex flex-col items-center">
+          <Sphota3DDial stamp={stamp} activeMeridianId="kamakhya" size={480} />
+          <DialReadoutStrip stamp={stamp} activeMeridianId="kamakhya" />
           <div className="mt-6 text-center max-w-[480px]">
-            <div className="text-xs italic text-gold-600/80">
+            <div className="text-xs italic text-gold-500/90">
               पवित्र युगादि (शुक्रवार आधी रात 17/18 फरवरी 3102 BCE · अवन्तिकापुर) से कामाख्या-केन्द्रित कलि दिन
             </div>
-            <div className="mt-2 text-[10px] font-mono text-gold-700 tracking-wider">
+            <div className="mt-2 text-[10px] font-mono text-gold-600 tracking-wider">
               K = JD_UT + 6.1137/24 − 588 465.5 − 1.062/24
             </div>
           </div>
         </div>
+      </div>
 
-        {/* दायाँ स्तम्भ: layer cards */}
-        <div className="space-y-4">
+      {/* ── DERIVATIONS: 6 panchanga layers, promoted from hero column to own grid ── */}
+      <section className="mt-16">
+        <header className="text-center mb-8">
+          <div className="text-xs font-display tracking-[0.4em] text-gold-500">
+            ◈ निरुपण · DERIVATIONS
+          </div>
+          <p className="mt-2 text-sm italic text-gold-600/80 max-w-md mx-auto">
+            एक मूल राशि — छह वैदिक स्तर। One quantity (K), six derived layers.
+          </p>
+        </header>
+        <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
           <LayerCard
             badge="वर्ष · VARṢA"
             badgeDeva="वर्ष"
@@ -143,7 +150,7 @@ export function GhadiClock() {
                 <span className="text-gold-600 text-sm">/ {y.samvatsara.name}</span>
               </div>
             }
-            subtitle={`संवत्सर #${y.samvatsara.index + 1} / 60 · बृहस्पति-चक्र`}
+            subtitle={`संवत्सर ${y.samvatsara.index + 1}/60 · बृहस्पति-चक्र`}
             rows={[
               { label: "विक्रम संवत्",  value: y.vikrama_samvat.toLocaleString() },
               { label: "शक संवत्",     value: y.shaka_samvat.toLocaleString() },
@@ -156,7 +163,7 @@ export function GhadiClock() {
             badge="मास · MĀSA"
             badgeDeva={m.masa_devanagari}
             title={m.masa_name}
-            subtitle={`मास #${m.masa_index} / 12 · सूर्य राशि #${m.sun_sign_index}`}
+            subtitle={`मास ${m.masa_index}/12 · सूर्य राशि ${m.sun_sign_index}`}
             rows={[
               { label: "सूर्य सिद्ध लम्बांश",
                 value: `${m.sun_sidereal_lon_deg.toFixed(4)}°` },
@@ -168,7 +175,7 @@ export function GhadiClock() {
             badge="पक्ष · तिथि"
             badgeDeva={t.paksha_devanagari}
             title={t.tithi_name}
-            subtitle={`${t.paksha_name} · तिथि #${t.tithi_index} / 30 (${t.tithi_in_paksha}/15)`}
+            subtitle={`${t.paksha_name} · तिथि ${t.tithi_index}/30 · ${t.paksha_name} ${t.tithi_in_paksha}/15`}
             rows={[
               { label: "चन्द्र − सूर्य",
                 value: `${t.moon_minus_sun_deg.toFixed(4)}°` },
@@ -187,7 +194,7 @@ export function GhadiClock() {
                 <span className="text-gold-600 text-sm">पाद {stamp.nakshatra_layer.pada}/4</span>
               </div>
             }
-            subtitle={`#${stamp.nakshatra_layer.nakshatra_index} / 27 · देवता ${stamp.nakshatra_layer.nakshatra_deity}`}
+            subtitle={`नक्षत्र ${stamp.nakshatra_layer.nakshatra_index}/27 · देवता ${stamp.nakshatra_layer.nakshatra_deity}`}
             rows={[
               { label: "विंशोत्तरी स्वामी", value: stamp.nakshatra_layer.nakshatra_lord },
               { label: "चन्द्र सिद्ध लम्बांश", value: `${stamp.nakshatra_layer.moon_sidereal_lon_deg.toFixed(4)}°` },
@@ -199,7 +206,7 @@ export function GhadiClock() {
             badge="योग · YOGA"
             badgeDeva={stamp.yoga_layer.yoga_devanagari}
             title={stamp.yoga_layer.yoga_name}
-            subtitle={`#${stamp.yoga_layer.yoga_index} / 27 · (सूर्य + चन्द्र) / 13°20′`}
+            subtitle={`योग ${stamp.yoga_layer.yoga_index}/27 · (सूर्य + चन्द्र) / 13°20′`}
             rows={[
               { label: "सूर्य + चन्द्र लम्बांश",
                 value: `${stamp.yoga_layer.sun_plus_moon_lon_deg.toFixed(4)}°` },
@@ -215,14 +222,14 @@ export function GhadiClock() {
             title={stamp.karana_layer.karana_name}
             subtitle={
               stamp.karana_layer.is_movable
-                ? `चर (movable) · चक्र ${stamp.karana_layer.movable_cycle_number}/8 · आधी-तिथि #${stamp.karana_layer.karana_index}/60`
-                : `स्थिर (fixed) · आधी-तिथि #${stamp.karana_layer.karana_index}/60`
+                ? `चर (movable) · चक्र ${stamp.karana_layer.movable_cycle_number}/8 · आधी-तिथि ${stamp.karana_layer.karana_index}/60`
+                : `स्थिर (fixed) · आधी-तिथि ${stamp.karana_layer.karana_index}/60`
             }
             formula="C = ⌊((L☾ − L☉) mod 360) / 6⌋ + 1  · ७ चर × ८ चक्र + ४ स्थिर"
           />
 
         </div>
-      </div>
+      </section>
 
       {/* दोनों meridian primary — Ujjayinī (Sūrya Siddhānta) ⟷ Kāmākhyā (KAAL) */}
       <MeridianComparison bm={stamp.by_meridian} />
@@ -258,14 +265,14 @@ function Header({ isLive, civilDisplay, tz }: { isLive: boolean; civilDisplay: s
         वर्तमान क्षण
       </h1>
       <p className="mt-3 max-w-xl mx-auto text-gold-500 italic">
-        हर वैदिक इकाई एक ही substrate-राशि से निकलती है —
-        <span className="text-gold-300"> पवित्र युगादि से कलि सावन दिन।</span>
+        एक मूल राशि · K = कलि सावन दिन।
+        <span className="text-gold-300"> हर वर्ष, मास, तिथि, नक्षत्र इसी से निकलता है।</span>
       </p>
       <div className="mt-6 inline-flex items-center gap-3 px-4 py-2 rounded-sm
                       border border-gold-700/40 bg-ink-900/40">
         <span className={`inline-block w-2 h-2 rounded-full ${isLive ? "bg-gold-400 ember-dot" : "bg-gold-700"}`} />
         <span className="font-mono text-sm text-gold-300 tabular">{civilDisplay}</span>
-        <span className="text-xs text-gold-600">IST · tz +{tz}h {isLive ? "· जीवंत" : "· स्थिर"}</span>
+        <span className="text-xs text-gold-500">IST · UTC+{tz} {isLive ? "· जीवंत" : "· स्थिर"}</span>
       </div>
     </header>
   )
@@ -273,38 +280,43 @@ function Header({ isLive, civilDisplay, tz }: { isLive: boolean; civilDisplay: s
 
 // Big helper removed — moved to MeridianComparison.tsx
 
-/** Alternate visualizations BELOW the hero dial · 2D sunburst (default) · ISO · Three.js */
+/** Alternate visualisations BELOW the hero dial · sunburst (default) · iso · Three.js */
 function SphotaVisualization({ stamp }: { stamp: SubstrateStamp }) {
-  // Default is 2D — the hero already shows the full Sphota3DDial; this section
-  // offers complementary views (sunburst layout · iso projection · Three.js).
-  const [mode, setMode] = useState<"dial" | "2d" | "3d" | "iso">("2d")
+  // Hero already shows the full Sphota3DDial; this section offers complementary
+  // views — same 504-cell substrate, different projection.
+  const [mode, setMode] = useState<"2d" | "3d" | "iso">("2d")
   const btnCls = (active: boolean, accent: string) => [
     "px-4 py-2 font-display tracking-wider text-xs transition-colors",
     active ? accent : "text-gold-500 hover:text-gold-300",
   ].join(" ")
   return (
     <div>
-      <div className="mt-10 flex justify-center">
-        <div className="inline-flex rounded-sm border border-gold-700 flex-wrap">
-          <button onClick={() => setMode("dial")}
-                  className={btnCls(mode === "dial", "bg-gold-500/20 text-gold-100")}>
-            ⊙ 3D यन्त्र-घटिका (34 complications)
-          </button>
-          <button onClick={() => setMode("2d")}
-                  className={btnCls(mode === "2d", "bg-gold-500/15 text-gold-100")}>
-            ◯ 2D सूर्यमंडल
-          </button>
-          <button onClick={() => setMode("iso")}
-                  className={btnCls(mode === "iso", "bg-amber-ember/30 text-amber-100")}>
-            ⬡ ISO समत्रिमिति
-          </button>
-          <button onClick={() => setMode("3d")}
-                  className={btnCls(mode === "3d", "bg-amber-ember/30 text-amber-100")}>
-            ⬢ 3D Three.js
-          </button>
+      <div className="mt-16">
+        <header className="text-center mb-6">
+          <div className="text-xs font-display tracking-[0.4em] text-gold-500">
+            ◈ ५०४ कोष्ठ · 504 CELLS
+          </div>
+          <p className="mt-2 text-sm italic text-gold-600/80">
+            same substrate · three projections
+          </p>
+        </header>
+        <div className="flex justify-center">
+          <div className="inline-flex rounded-sm border border-gold-700 flex-wrap">
+            <button onClick={() => setMode("2d")}
+                    className={btnCls(mode === "2d", "bg-gold-500/15 text-gold-100")}>
+              2D सूर्यमण्डल · Sunburst
+            </button>
+            <button onClick={() => setMode("iso")}
+                    className={btnCls(mode === "iso", "bg-amber-ember/30 text-amber-100")}>
+              ISO समत्रिमिति · Axonometric
+            </button>
+            <button onClick={() => setMode("3d")}
+                    className={btnCls(mode === "3d", "bg-amber-ember/30 text-amber-100")}>
+              3D · Volumetric
+            </button>
+          </div>
         </div>
       </div>
-      {mode === "dial" && <Sphota3DDial stamp={stamp} activeMeridianId="kamakhya" />}
       {mode === "2d"   && <SphotaSunburst stamp={stamp} />}
       {mode === "iso"  && <Sphota3DIso stamp={stamp} />}
       {mode === "3d"   && <Sphota3D stamp={stamp} />}
@@ -315,11 +327,14 @@ function SphotaVisualization({ stamp }: { stamp: SubstrateStamp }) {
 function SubstrateFooter() {
   return (
     <footer className="mt-16 pt-8 border-t border-gold-700/30 text-center">
-      <div className="font-display text-xs tracking-[0.3em] text-gold-500">
-        मूल आधार · SUBSTRATE — (R, g, k) = (ℤ/3<sup>k</sup>ℤ, 2, k ∈ ℕ⁺) · महा-महा-वाक्यम्
+      <div className="font-display text-xs tracking-[0.3em] text-gold-400">
+        मूल आधार · THE SUBSTRATE
       </div>
-      <div className="mt-2 text-xs italic text-gold-600/80">
-        विदेशी निर्भरता: शून्य · हर इकाई (२, ३, ५) में विभाज्य · पूर्ण भारत-canonical
+      <div className="mt-1 font-mono text-xs text-gold-300 tabular">
+        (R, g, k) = (ℤ/3<sup>k</sup>ℤ, 2, k ∈ ℕ⁺)
+      </div>
+      <div className="mt-3 text-xs italic text-gold-500">
+        बाह्य-निर्भरता: शून्य · हर इकाई (२, ३, ५) से विभाज्य · पूर्ण भारत-canonical
       </div>
       <div className="mt-4 inscription text-base">
         ॐ कालाय नमः · ॐ कामाख्यायै नमः · हर हर महादेव · <span className="text-gold-400">JAI MAA KAMAKHYA</span>

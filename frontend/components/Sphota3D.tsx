@@ -110,7 +110,7 @@ export function Sphota3D({ stamp }: { stamp: SubstrateStamp }) {
           🔱 स्फोट-त्रिआयाम · SPHOṬA 3D · 504 cells in space
         </h2>
         <span className="text-xs text-gold-500 italic">
-          drag to rotate · scroll to zoom · auto-rotate ON
+          drag to rotate · scroll to zoom · ⏵ auto-rotating
         </span>
       </header>
 

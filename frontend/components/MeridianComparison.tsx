@@ -28,7 +28,7 @@ export function MeridianComparison({ bm }: { bm: ByMeridian }) {
         </div>
         <p className="mt-1 text-xs text-gold-600/80 italic">
           वर्ष / मास / तिथि / नक्षत्र / योग / करण — दोनों meridian पर समान।
-          सिर्फ वार और दिनार्ध meridian-dependent।
+          सिर्फ वार और दिन-विभाजन meridian-dependent।
         </p>
       </header>
 
@@ -108,7 +108,7 @@ function MeridianCard({
       {/* Day subdivision */}
       <div>
         <div className="text-[10px] tracking-[0.2em] text-gold-600 font-display mb-2">
-          दिनार्ध · DAY SUBDIVISION
+          दिन-विभाजन · DAY SUBDIVISION
         </div>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm tabular">
           <Row label="मुहूर्त" v={d.muhurta_index} max={30} />

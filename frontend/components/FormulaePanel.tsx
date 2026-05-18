@@ -173,7 +173,7 @@ function ParallelMeridianFormula({ stamp }: { stamp: SubstrateStamp }) {
       <div className="mt-2 text-xs text-gold-600/80 italic px-2">
         Year / saṃvatsara / māsa / tithi / nakṣatra / yoga / karaṇa are identical
         across both — Sun and Moon positions don&apos;t depend on observer&apos;s meridian.
-        Only वार और दिनार्ध meridian-dependent।
+        Only वार और दिन-विभाजन meridian-dependent।
       </div>
     </Section>
   )
@@ -287,7 +287,7 @@ function PanchangaFormulae({ sunLon, moonLon, elong, stamp }: {
 function DaySubdivisionFormulae({ frac, stamp }: { frac: number; stamp: SubstrateStamp }) {
   const d = stamp.day_subdivision
   return (
-    <Section title="◈ दिनार्ध · DAY SUBDIVISION" subtitle="K के दशमलव भाग को ३० / ६० / ६ / १० में बाँटना">
+    <Section title="◈ दिन-विभाजन · DAY SUBDIVISION" subtitle="K के दशमलव भाग को ३० / ६० / ६ / १० में बाँटना">
       <Formula label="दिन-भाग" deva="दिनांश"
         formula="f = K − ⌊K⌋"
         result={`f = ${frac.toFixed(6)}  →  ${(frac * 24).toFixed(4)} h`} />

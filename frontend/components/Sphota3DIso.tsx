@@ -171,7 +171,7 @@ export function Sphota3DIso({ stamp }: { stamp: SubstrateStamp }) {
           🔱 स्फोट-समत्रिमिति · SPHOṬA ISO · 504 cells (pure-SVG depth-sort)
         </h2>
         <span className="text-xs text-gold-500 italic">
-          drag to rotate · yaw {yaw.toFixed(0)}° · pitch {pitch.toFixed(0)}° · auto-rotate ON
+          drag to rotate · ⏵ auto-rotating
         </span>
       </header>
 

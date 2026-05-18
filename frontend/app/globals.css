@@ -2,24 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ════════════════════════════════════════════════════════════════════════
+   Design tokens — saptamukhi audit (design mukha §10).
+   Two-tier (primitives → semantic), Carbon-style. Tuned for AMOLED black.
+   ════════════════════════════════════════════════════════════════════════ */
 :root {
-  --bg-deep: #050300;
-  --bg-base: #0a0703;
-  --bg-raise: #100a05;
-  --gold: #d4a44c;
-  --gold-soft: #e9b863;
-  --gold-bright: #f6cf78;
-  --gold-rim: #6b4d1c;
-  --amber-ember: #a04a0a;
+  /* — primitives — */
+  --ink-1000:#020100; --ink-950:#050300; --ink-900:#0a0703;
+  --ink-850:#0f0805;  --ink-800:#150d07; --ink-700:#1d140a;
+  --gold-50:#fff8e6;  --gold-100:#fdecc2; --gold-200:#f6d28a;
+  --gold-300:#e9b863; --gold-400:#d4a44c; --gold-500:#b88937;
+  --gold-600:#8a6526; --gold-700:#5a4116; --gold-800:#33240b;
+  --ember-500:#c4561a; --ember-700:#7a2f08; --vermillion-500:#a8281c;
+
+  /* — semantic — */
+  --bg-canvas:var(--ink-950);   --bg-surface:var(--ink-900);
+  --bg-raised:var(--ink-850);   --bg-sunken:var(--ink-1000);
+  --text-primary:var(--gold-100); --text-body:var(--gold-200);
+  --text-muted:var(--gold-500);   --text-faint:var(--gold-700);
+  --stroke-hairline:var(--gold-800); --stroke-rim:var(--gold-600);
+  --accent-gold:var(--gold-300);  --accent-ember:var(--ember-500);
+  --signal-live:var(--ember-500);
+
+  /* — state — */
+  --state-hover:rgba(246,210,138,0.08);
+  --state-active:rgba(246,210,138,0.14);
+  --state-focus-ring:var(--gold-200);
+  --state-disabled:var(--gold-800);
+
+  /* — motion — */
+  --ease-entry:cubic-bezier(0.16,1,0.3,1);
+  --ease-state:cubic-bezier(0.4,0,0.2,1);
+  --dur-state:120ms; --dur-component:280ms; --dur-hero:600ms;
+
+  /* — backwards compatibility (deprecated; will be removed) — */
+  --bg-deep:var(--bg-canvas);
+  --bg-base:var(--bg-surface);
+  --bg-raise:var(--bg-raised);
+  --gold:var(--gold-400);
+  --gold-soft:var(--text-body);
+  --gold-bright:var(--gold-200);
+  --gold-rim:var(--stroke-rim);
+  --amber-ember:var(--ember-700);
 }
 
 html, body {
   background:
     radial-gradient(ellipse at top, #1a0d04 0%, transparent 60%),
     radial-gradient(ellipse at bottom, #0d0602 0%, transparent 60%),
-    #050300;
+    var(--bg-canvas);
   background-attachment: fixed;
-  color: var(--gold-soft);
+  color: var(--text-body);
   min-height: 100vh;
 }
 
@@ -34,7 +67,23 @@ h1, h2, h3, h4 {
   font-family: var(--font-cinzel), serif;
   font-weight: 400;
   letter-spacing: 0.08em;
-  color: var(--gold-bright);
+  color: var(--text-primary);
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   Hero "wake the dial" — 600ms entry sequence on page mount (design §7).
+   Honours prefers-reduced-motion.
+   ════════════════════════════════════════════════════════════════════════ */
+@keyframes wake-dial {
+  0%   { opacity: 0; transform: scale(0.96); filter: blur(4px); }
+  60%  { opacity: 0.9; filter: blur(1px); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+.wake-dial {
+  animation: wake-dial var(--dur-hero) var(--ease-entry) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wake-dial { animation: none; }
 }
 
 ::selection {

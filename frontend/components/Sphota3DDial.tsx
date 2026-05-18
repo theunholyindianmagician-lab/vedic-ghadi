@@ -721,10 +721,10 @@ function CenterSeal({
             </text>
           </g>
         )}
-        {/* affordance hint — small "+" indicating clickable */}
-        <text y={r + 14} fontSize={8} fill="#7a5c1f" textAnchor="middle"
-          fontFamily="'Cinzel', serif" letterSpacing="0.2em">
-          ⊕ TAP
+        {/* affordance hint — lowercase, no glyph (content audit §2) */}
+        <text y={r + 14} fontSize={7} fill="#b88937" textAnchor="middle"
+          fontFamily="'Cinzel', serif" letterSpacing="0.18em">
+          tap to open
         </text>
       </g>
     </svg>
@@ -790,8 +790,8 @@ function SaptamukhiPanel({
             <PanelKV k="Civil" v={`${String(stamp.input_civil.hour).padStart(2,"0")}:${String(stamp.input_civil.minute).padStart(2,"0")}:${String(Math.floor(stamp.input_civil.second)).padStart(2,"0")} (UTC+${stamp.input_civil.tz_h})`} />
             <PanelKV k="Date" v={`${stamp.input_civil.gregorian_year}-${String(stamp.input_civil.month).padStart(2,"0")}-${String(stamp.input_civil.day).padStart(2,"0")}`} />
             <PanelKV k="Day" v={vara.vara_name + " · " + vara.vara_devanagari + " (" + vara.vara_lord_graha + ")"} />
-            <PanelKV k="Ghaṭi-Aditi" v={`${stamp.day_subdivision_aditi.ghati_index} / ${stamp.day_subdivision_aditi.vighati_index} / ${stamp.day_subdivision_aditi.prana_index}`} sub="60·60·6 cascade" />
-            <PanelKV k="Ghaṭi-Diti" v={`${stamp.day_subdivision_diti.ghati_index} / ${stamp.day_subdivision_diti.vighati_index} / ${stamp.day_subdivision_diti.prana_index}`} sub="20·20·2 (compressed pole)" />
+            <PanelKV k="Ghaṭi-Aditi" v={`${stamp.day_subdivision_aditi.ghati_index} / ${stamp.day_subdivision_aditi.vighati_index} / ${stamp.day_subdivision_aditi.prana_index}`} sub="60 घटी → 60 विघटी → 6 प्राण" />
+            <PanelKV k="Ghaṭi-Diti" v={`${stamp.day_subdivision_diti.ghati_index} / ${stamp.day_subdivision_diti.vighati_index} / ${stamp.day_subdivision_diti.prana_index}`} sub="20 / 20 / 2 — दिति-pole (Pisano ÷3)" />
             <PanelKV k="Muhūrta" v={`${stamp.day_subdivision_aditi.muhurta_index} / 30`} />
             <PanelKV k="K · Kāmākhyā JD" v={stamp.kali_civil_days_at_kamakhya.toFixed(6)} mono />
           </PanelGroup>
