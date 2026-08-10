@@ -9,6 +9,7 @@ from vedic_ghadi.substrate import GRAHA_NAMES
 from vedic_ghadi.ashtakavarga import (
     ASHTAKAVARGA_TABLES, ASHTAKAVARGA_GRAHAS,
     bhinna_ashtakavarga, compute_bhinna_sarva,
+    compute_bhinna_sarva_variants, MOON_VARIANT_ROWS,
 )
 
 
@@ -120,3 +121,60 @@ def test_av_uses_surya_lagna():
     # Sun's sign = floor(sun_lon / 30); we don't have sun_lon directly but moon_lon yes
     # We can verify lagna_sign is in [0, 11]
     assert 0 <= av["lagna_sign"] <= 11
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Moon-table variants in parallel (bpns / phaladipika / varahamihira)
+# ──────────────────────────────────────────────────────────────────────────
+
+def _variant_fixture():
+    """Deterministic 9-graha fixture → signs Sun=0 Moon=1 Mars=2 Mercury=3
+    Jupiter=4 Venus=5 Saturn=6 Rahu=7 Ketu=1; observer Lagna = 240° → sign 8."""
+    graha_lons = {g: 30.0 * i for i, g in enumerate(GRAHA_NAMES) if g != "Ketu"}
+    graha_lons["Ketu"] = (graha_lons["Rahu"] + 180.0) % 360.0
+    return graha_lons
+
+
+def test_moon_variants_all_total_337_and_moon_49():
+    variants = compute_bhinna_sarva_variants(_variant_fixture(), lagna_lon_deg=240.0)
+    assert set(variants) == {"bpns", "phaladipika", "varahamihira"}
+    for vid, v in variants.items():
+        assert v["sarva_total"] == 337, vid
+        assert v["per_graha_totals"]["Moon"] == 49, vid
+        assert v["variant"] == vid
+
+
+def test_moon_variants_only_affect_chandra_rows():
+    """Non-Moon grahas byte-identical across variants; Chandra differs exactly
+    in the two documented places (pinned row substitutions)."""
+    graha_lons = _variant_fixture()
+    variants = compute_bhinna_sarva_variants(graha_lons, lagna_lon_deg=240.0)
+    base = variants["bpns"]
+    signs = {g: int(graha_lons[g] // 30) % 12 for g in graha_lons}
+    moon_sign, mars_sign, jup_sign = signs["Moon"], signs["Mars"], signs["Jupiter"]
+
+    for g in ("Sun", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"):
+        for vid in ("phaladipika", "varahamihira"):
+            assert variants[vid]["bhinna"][g] == base["bhinna"][g], (vid, g)
+
+    # Phaladīpikā: the 9 moves Moon-from-Moon → Moon-from-Mars.
+    phd = variants["phaladipika"]["bhinna"]["Moon"]
+    bphs = base["bhinna"]["Moon"]
+    assert phd[(moon_sign + 8) % 12] == bphs[(moon_sign + 8) % 12] - 1  # 9 removed
+    assert phd[(mars_sign + 8) % 12] == bphs[(mars_sign + 8) % 12] + 1  # 9 added
+
+    # Varāhamihira: Jupiter row (1,2,4,7,8,10,11) → (1,4,7,8,10,11,12):
+    #   offset 2 removed → −1 at ref+1; offset 12 added → +1 at ref+11.
+    var = variants["varahamihira"]["bhinna"]["Moon"]
+    assert var[(jup_sign + 1) % 12] == bphs[(jup_sign + 1) % 12] - 1
+    assert var[(jup_sign + 11) % 12] == bphs[(jup_sign + 11) % 12] + 1
+
+
+def test_substrate_exposes_all_variants():
+    stamp = ghadi_at(2026, 5, 17, 16, 0, 0, 5.5)
+    cell = stamp["meridians"]["ujjain"]["trimurti"]["aditi"]["brahma"]
+    avs = cell["ashtakavarga_variants"]
+    assert set(avs) == {"bpns", "phaladipika", "varahamihira"}
+    # Main section stays aligned to BPHS: ashtakavarga == variants["bpns"].
+    assert cell["ashtakavarga"]["bhinna"] == avs["bpns"]["bhinna"]
+    assert cell["ashtakavarga"]["sarva_total"] == avs["bpns"]["sarva_total"] == 337

@@ -435,7 +435,8 @@ export interface TrimurtiView {
   moon_lon_deg: number
   // v1.9.0 — per-graha vargas + Aṣṭakavarga
   vargas_grahas: Record<string, number[]>   // {graha: [21 sign-idx]}
-  ashtakavarga: AshtakavargaResult
+  ashtakavarga: AshtakavargaResult           // main · BPHS Ch. 66 (aligned)
+  ashtakavarga_variants: AshtakavargaVariants  // bpns/phd/varahamihira in parallel
 }
 
 export function computeTrimurtiViews(
@@ -464,10 +465,12 @@ export function computeTrimurtiViews(
       vargasGrahas[graha] = computeAllVargas(grahaLons[graha])
     }
 
-    // Aṣṭakavarga from 9 graha longitudes + observer ascendant (single-observer mode)
+    // Aṣṭakavarga from 9 graha longitudes + observer ascendant (single-observer
+    // mode). All Moon-table conventions computed in parallel; main = bpns.
     const jd = kaliCivilDaysToJd(kShifted)
     const lagnaLon = siderealAscendantDeg(jd, observerLatDeg, observerLonDeg)
-    const ashtakavarga = computeBhinnaSarva(grahaLons, lagnaLon)
+    const ashtakavargaVariants = computeBhinnaSarvaVariants(grahaLons, lagnaLon)
+    const ashtakavarga = ashtakavargaVariants.bpns
 
     const moonLon = grahaLons["Moon"]
     const vargasMoon = vargasGrahas["Moon"]
@@ -490,6 +493,7 @@ export function computeTrimurtiViews(
       moon_lon_deg: Math.round(moonLon * 1e4) / 1e4,
       vargas_grahas: vargasGrahas,
       ashtakavarga,
+      ashtakavarga_variants: ashtakavargaVariants,
     }
   }
   return out
@@ -549,7 +553,7 @@ export interface YearLayer {
 import type { NakshatraLayer, YogaLayer, KaranaLayer } from "./panchanga.ts"
 import { nakshatraAtKaliDays, yogaAtKaliDays, karanaAtKaliDays } from "./panchanga.ts"
 import { computeAllVargas, VARGA_LIST, SIGN_NAMES, SIGN_DEV, SIGN_GLYPH } from "./vargas.ts"
-import { computeBhinnaSarva, type AshtakavargaResult } from "./ashtakavarga.ts"
+import { computeBhinnaSarvaVariants, type AshtakavargaResult, type AshtakavargaVariants } from "./ashtakavarga.ts"
 export type { NakshatraLayer, YogaLayer, KaranaLayer, AshtakavargaResult }
 export { VARGA_LIST, SIGN_NAMES, SIGN_DEV, SIGN_GLYPH } from "./vargas.ts"
 

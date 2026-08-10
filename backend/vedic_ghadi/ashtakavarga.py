@@ -11,7 +11,7 @@ is the per-sign sum; Sarva-AV is the sum across all 7 grahas.
 Canonical totals (sum across 12 signs of each graha's Bhinna-AV):
   Sun = 48 · Moon = 49 · Mars = 39 · Mercury = 54 · Jupiter = 56
   Venus = 52 · Saturn = 39
-  Sum (Sarva) = 337
+  Sum (Sarva) = 337  (invariant across ALL Moon-table variants below)
 
 CONVENTION / SOURCES (pinned 2026-08-10 against primary texts):
   Primary = BPHS Ch. 66 (Santhanam translation, archive.org full text).
@@ -22,12 +22,19 @@ CONVENTION / SOURCES (pinned 2026-08-10 against primary texts):
     - Moon-from-Mars: BPHS = (2,3,5,6,10,11); Phaladīpikā adds the 9.
     - Moon-from-Jupiter: BPHS = Phaladīpikā-main = (1,2,4,7,8,10,11);
       Varāhamihira variant (Phaladīpikā footnote) = (1,4,7,8,10,11,12).
-  This table follows BPHS (the oracle's declared anchor). Earlier code was a
-  HYBRID that took the 9 in BOTH Moon-from-Moon (BPHS) and Moon-from-Mars
-  (Phaladīpikā) → Moon totalled 50 instead of 49.
 
-In this implementation we use SŪRYA-LAGNA (Sun's sign) as Lagna proxy
-because the substrate doesn't compute observer ascendant (no lat/lon).
+PARALLEL VARIANTS (2026-08-10): rather than picking one school, the engine
+computes ALL three documented Moon-table conventions in parallel. The main
+`ashtakavarga` block stays aligned to BPHS (the oracle's declared anchor);
+`ashtakavarga_variants` carries all three:
+  - "bpns"          BPHS Ch. 66               (default · oracle anchor)
+  - "phaladipika"   Phaladīpikā Ch. 23 transposed 9 → Moon-from-Mars
+  - "varahamihira"  Phaladīpikā footnote / M.S. Mehta — Jupiter row variant
+Each keeps Moon = 49 and Sarva = 337 (the 9 is moved, never duplicated —
+the earlier HYBRID bug took the 9 in BOTH rows → Moon totalled 50).
+
+In this implementation we use the observer sidereal ascendant as Lagna;
+`lagna_lon_deg=None` keeps the Sūrya-Lagna (Sun's sign) proxy.
 """
 
 from __future__ import annotations
@@ -119,10 +126,65 @@ ASHTAKAVARGA_TABLES = {
 
 ASHTAKAVARGA_GRAHAS = ("Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn")
 
+# ═══════════════════════════════════════════════════════════════════════════
+# ◈ MOON-TABLE VARIANTS — three documented Chandra-AV conventions, shown in
+# parallel. Only the Chandra rows ever differ; Sarva total stays 337 in all.
+#   bpns          · BPHS Ch. 66                — 9 in Moon-from-Moon (default)
+#   phaladipika   · Phaladīpikā Ch. 23 / Mehta — 9 in Moon-from-Mars (transposed)
+#   varahamihira  · Phaladīpikā footnote/Mehta — Jupiter row (1,4,7,8,10,11,12)
+# ═══════════════════════════════════════════════════════════════════════════
 
-def bhinna_ashtakavarga(target_graha: str, graha_signs: dict, lagna_sign: int) -> list[int]:
-    """Compute Bhinna-AV for one graha — returns [12 bindu counts per sign]."""
-    table = ASHTAKAVARGA_TABLES[target_graha]
+AV_VARIANT_IDS = ("bpns", "phaladipika", "varahamihira")
+
+AV_VARIANT_META = {
+    "bpns": {
+        "label_en": "BPHS Ch. 66",
+        "label_hi": "बृहत्पाराशर-होराशास्त्र · अ. 66",
+        "source": "BPHS (Santhanam tr.) — oracle anchor (default)",
+    },
+    "phaladipika": {
+        "label_en": "Phaladīpikā Ch. 23",
+        "label_hi": "फलदीपिका · अ. 23",
+        "source": "Phaladīpikā / M.S. Mehta — 9 transposed to Moon-from-Mars",
+    },
+    "varahamihira": {
+        "label_en": "Varāhamihira",
+        "label_hi": "वराहमिहिर",
+        "source": "Phaladīpikā footnote / M.S. Mehta — Jupiter row (1,4,7,8,10,11,12)",
+    },
+}
+
+# Per-variant override rows for the Chandra table (ref → offsets).
+# Keys are references of ASHTAKAVARGA_TABLES["Moon"]; a row listed here
+# REPLACES the base BPHS row for that variant.
+MOON_VARIANT_ROWS = {
+    "bpns": {},  # base table already IS BPHS
+    "phaladipika": {
+        "Moon":    (1, 3, 6, 7, 10, 11),        # 9 removed from Moon-from-Moon
+        "Mars":    (2, 3, 5, 6, 9, 10, 11),     # 9 added to Moon-from-Mars
+    },
+    "varahamihira": {
+        "Jupiter": (1, 4, 7, 8, 10, 11, 12),    # −2 · +12 vs (1,2,4,7,8,10,11)
+    },
+}
+
+
+def bhinna_ashtakavarga(
+    target_graha: str, graha_signs: dict, lagna_sign: int,
+    variant: str = "bpns",
+) -> list[int]:
+    """Compute Bhinna-AV for one graha — returns [12 bindu counts per sign].
+
+    `variant` selects the Chandra-table school ("bpns" default; others only
+    affect target_graha == "Moon").
+    """
+    if variant not in AV_VARIANT_IDS:
+        raise ValueError(
+            f"unknown AV variant {variant!r}; choose from {AV_VARIANT_IDS}"
+        )
+    table = dict(ASHTAKAVARGA_TABLES[target_graha])
+    if target_graha == "Moon":
+        table.update(MOON_VARIANT_ROWS[variant])
     bindus = [0] * 12
     for ref_name, offsets in table.items():
         ref_sign = lagna_sign if ref_name == "Lagna" else graha_signs[ref_name]
@@ -133,7 +195,9 @@ def bhinna_ashtakavarga(target_graha: str, graha_signs: dict, lagna_sign: int) -
     return bindus
 
 
-def compute_bhinna_sarva(graha_lons: dict, lagna_lon_deg: float = None) -> dict:
+def compute_bhinna_sarva(
+    graha_lons: dict, lagna_lon_deg: float = None, variant: str = "bpns",
+) -> dict:
     """Compute full Aṣṭakavarga from 9-graha longitudes dict + observer lagna.
 
     Single-observer mode: Lagna is the sidereal ascendant (effective_49
@@ -141,15 +205,18 @@ def compute_bhinna_sarva(graha_lons: dict, lagna_lon_deg: float = None) -> dict:
     `lagna_lon_deg=None` keeps the legacy Sūrya-Lagna proxy (backward
     compatible for callers that don't pass an observer).
 
+    `variant` selects the Chandra-table school (see MOON_VARIANT_ROWS).
+
     Returns:
         {
           "bhinna": {graha: [12 bindus]},           # 7 grahas × 12 signs
           "sarva":  [12 totals],                     # sum across 7 grahas
-          "sarva_total": int,                        # sum of sarva = ~337
+          "sarva_total": int,                        # sum of sarva = 337 (all variants)
           "per_graha_totals": {graha: int},          # sum per graha
           "lagna_sign": int,                         # observer-ascendant sign
           "lagna_lon_deg": float,                    # observer sidereal ascendant
           "lagna_proxy": str,                        # frame description
+          "variant": str,                            # Moon-table school
         }
     """
     # Convert longitudes → sign indices (0-11)
@@ -163,7 +230,7 @@ def compute_bhinna_sarva(graha_lons: dict, lagna_lon_deg: float = None) -> dict:
 
     bhinna = {}
     for graha in ASHTAKAVARGA_GRAHAS:
-        bhinna[graha] = bhinna_ashtakavarga(graha, graha_signs, lagna_sign)
+        bhinna[graha] = bhinna_ashtakavarga(graha, graha_signs, lagna_sign, variant)
 
     # Sarva — sum across all 7 grahas per sign
     sarva = [0] * 12
@@ -181,10 +248,29 @@ def compute_bhinna_sarva(graha_lons: dict, lagna_lon_deg: float = None) -> dict:
         "lagna_sign": lagna_sign,
         "lagna_lon_deg": lagna_lon_deg,
         "lagna_proxy": lagna_proxy,
+        "variant": variant,
+    }
+
+
+def compute_bhinna_sarva_variants(
+    graha_lons: dict, lagna_lon_deg: float = None,
+) -> dict:
+    """Compute ALL documented Moon-table variants in parallel.
+
+    Returns {variant_id: result} for bpns / phaladipika / varahamihira.
+    `bpns` is identical to compute_bhinna_sarva(...) with default variant,
+    so the main section stays aligned while the alternatives are shown
+    alongside — nothing is skipped.
+    """
+    return {
+        vid: compute_bhinna_sarva(graha_lons, lagna_lon_deg, vid)
+        for vid in AV_VARIANT_IDS
     }
 
 
 __all__ = [
     "ASHTAKAVARGA_TABLES", "ASHTAKAVARGA_GRAHAS",
+    "AV_VARIANT_IDS", "AV_VARIANT_META", "MOON_VARIANT_ROWS",
     "bhinna_ashtakavarga", "compute_bhinna_sarva",
+    "compute_bhinna_sarva_variants",
 ]

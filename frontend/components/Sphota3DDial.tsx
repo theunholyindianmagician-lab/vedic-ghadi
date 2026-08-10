@@ -50,6 +50,7 @@
 import { useState, useMemo, useRef, useEffect } from "react"
 import type { SubstrateStamp, PoleId, TrimurtiId } from "@/lib/substrate"
 import { SAMVATSARA_NAMES } from "@/lib/substrate"
+import { AV_VARIANT_META, type AVVariant } from "@/lib/ashtakavarga"
 import { NAKSHATRA_NAMES, NAKSHATRA_DEV, NAKSHATRA_DEITY } from "@/lib/panchanga"
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -822,9 +823,10 @@ function SaptamukhiPanel({
           </PanelGroup>
 
           <PanelGroup title="अष्टकवर्ग · ASHTAKAVARGA">
-            <PanelKV k="Sarva total" v={String(av?.sarva_total ?? "—")} sub="0..337 bindu strength meter" />
+            <PanelKV k="Sarva total" v={String(av?.sarva_total ?? "—")} sub="0..337 bindu strength meter · BPHS Ch. 66 main" />
             <PanelKV k="लग्न · Lagna" v={av?.lagna_sign !== undefined ? `rāśi ${av.lagna_sign + 1} · ${av?.lagna_lon_deg?.toFixed(4) ?? "—"}°` : "—"} sub={av?.lagna_proxy ?? "observer ascendant"} />
             <AshtakavargaBars av={av} />
+            <AshtakavargaVariantsStrip variants={cell.ashtakavarga_variants} />
           </PanelGroup>
 
           <PanelGroup title="त्रिमूर्ति · TRIMŪRTI (all 3)">
@@ -893,6 +895,61 @@ function AshtakavargaBars({ av }: { av: any }) {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+const AV_VARIANT_ORDER: AVVariant[] = ["bpns", "phaladipika", "varahamihira"]
+
+/**
+ * All documented Moon-table conventions in parallel — nothing skipped.
+ * The main section above stays aligned to BPHS; this strip renders the
+ * same 12-sign sarva for each school and highlights every sign whose
+ * bindu count shifts away from the BPHS baseline.
+ */
+function AshtakavargaVariantsStrip({ variants }: { variants: any }) {
+  const main = variants?.bpns?.sarva
+  if (!Array.isArray(main)) return null
+  return (
+    <div className="mt-3 border-t border-gold-700/30 pt-2">
+      <div className="text-[9px] font-display tracking-[0.25em] text-gold-500 mb-1.5">
+        सारणी भेद · MOON-TABLE VARIANTS — all 3 · सर्व = 337
+      </div>
+      <div className="space-y-1.5">
+        {AV_VARIANT_ORDER.map(id => {
+          const v = variants?.[id]
+          if (!v?.sarva) return null
+          const meta = AV_VARIANT_META[id]
+          return (
+            <div key={id} className="flex items-center gap-1.5">
+              <div className="w-[58px] shrink-0 leading-tight">
+                <div className="text-[9px] text-gold-300">{meta.label_en}</div>
+                <div className="text-[8px] text-gold-600">{meta.label_hi}</div>
+              </div>
+              <div className="flex gap-[3px] flex-1">
+                {v.sarva.map((b: number, i: number) => {
+                  const d = b - main[i]
+                  const cls = d > 0
+                    ? "bg-emerald-500/40 text-emerald-200"
+                    : d < 0
+                      ? "bg-rose-500/40 text-rose-200"
+                      : "bg-ink-800 text-gold-400"
+                  const tip = `${RASHI_NAMES[i]} ${RASHI_GLYPHS[i]} · ${b} bindu${d ? ` (Δ${d > 0 ? "+" : ""}${d} vs BPHS)` : ""}`
+                  return (
+                    <div key={i} title={tip} className={`flex-1 h-5 flex items-center justify-center text-[9px] font-mono rounded-sm ${cls}`}>
+                      {b}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      <div className="mt-1.5 text-[8px] text-gold-600 italic leading-snug">
+        Same 337 total in every school — only the Chandra-table redistributes bindus
+        across signs. Main section stays BPHS (oracle anchor).
+      </div>
     </div>
   )
 }

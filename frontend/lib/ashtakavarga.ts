@@ -79,18 +79,57 @@ const TABLES: Record<string, Record<string, readonly number[]>> = {
 export const ASHTAKAVARGA_GRAHAS = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"] as const
 export type AVGraha = typeof ASHTAKAVARGA_GRAHAS[number]
 
+export const AV_VARIANT_IDS = ["bpns", "phaladipika", "varahamihira"] as const
+export type AVVariant = typeof AV_VARIANT_IDS[number]
+
+export const AV_VARIANT_META: Record<AVVariant, { label_en: string; label_hi: string; source: string }> = {
+  bpns: {
+    label_en: "BPHS Ch. 66",
+    label_hi: "बृहत्पाराशर-होराशास्त्र · अ. 66",
+    source: "BPHS (Santhanam tr.) — oracle anchor (default)",
+  },
+  phaladipika: {
+    label_en: "Phaladīpikā Ch. 23",
+    label_hi: "फलदीपिका · अ. 23",
+    source: "Phaladīpikā / M.S. Mehta — 9 transposed to Moon-from-Mars",
+  },
+  varahamihira: {
+    label_en: "Varāhamihira",
+    label_hi: "वराहमिहिर",
+    source: "Phaladīpikā footnote / M.S. Mehta — Jupiter row (1,4,7,8,10,11,12)",
+  },
+}
+
+/** Per-variant override rows for the Chandra table (ref → offsets). */
+const MOON_VARIANT_ROWS: Record<AVVariant, Record<string, readonly number[]>> = {
+  bpns: {},
+  phaladipika: {
+    Moon:    [1, 3, 6, 7, 10, 11],
+    Mars:    [2, 3, 5, 6, 9, 10, 11],
+  },
+  varahamihira: {
+    Jupiter: [1, 4, 7, 8, 10, 11, 12],
+  },
+}
+
 export interface AshtakavargaResult {
   bhinna: Record<AVGraha, number[]>     // 7 grahas × 12 bindu counts
   sarva: number[]                        // 12 totals (sum across 7)
-  sarva_total: number                    // ~337
+  sarva_total: number                    // 337 in every variant
   per_graha_totals: Record<AVGraha, number>
   lagna_sign: number
   lagna_lon_deg: number
   lagna_proxy: string
+  variant: AVVariant                     // Chandra-table school
 }
 
-function bhinnaAV(target: AVGraha, grahaSigns: Record<string, number>, lagnaSign: number): number[] {
-  const table = TABLES[target]
+export type AshtakavargaVariants = Record<AVVariant, AshtakavargaResult>
+
+function bhinnaAV(target: AVGraha, grahaSigns: Record<string, number>, lagnaSign: number, variant: AVVariant = "bpns"): number[] {
+  const table = { ...TABLES[target] }
+  if (target === "Moon") {
+    Object.assign(table, MOON_VARIANT_ROWS[variant])
+  }
   const bindus = new Array(12).fill(0)
   for (const ref of Object.keys(table)) {
     const refSign = ref === "Lagna" ? lagnaSign : grahaSigns[ref]
@@ -102,7 +141,7 @@ function bhinnaAV(target: AVGraha, grahaSigns: Record<string, number>, lagnaSign
   return bindus
 }
 
-export function computeBhinnaSarva(grahaLons: Record<string, number>, lagnaLonDeg: number): AshtakavargaResult {
+export function computeBhinnaSarva(grahaLons: Record<string, number>, lagnaLonDeg: number, variant: AVVariant = "bpns"): AshtakavargaResult {
   const grahaSigns: Record<string, number> = {}
   for (const g of Object.keys(grahaLons)) {
     grahaSigns[g] = ((Math.floor(grahaLons[g] / 30) % 12) + 12) % 12
@@ -111,7 +150,7 @@ export function computeBhinnaSarva(grahaLons: Record<string, number>, lagnaLonDe
 
   const bhinna: Record<AVGraha, number[]> = {} as Record<AVGraha, number[]>
   for (const g of ASHTAKAVARGA_GRAHAS) {
-    bhinna[g] = bhinnaAV(g, grahaSigns, lagnaSign)
+    bhinna[g] = bhinnaAV(g, grahaSigns, lagnaSign, variant)
   }
 
   const sarva = new Array(12).fill(0)
@@ -132,5 +171,13 @@ export function computeBhinnaSarva(grahaLons: Record<string, number>, lagnaLonDe
     lagna_sign: lagnaSign,
     lagna_lon_deg: lagnaLonDeg,
     lagna_proxy: "observer ascendant (effective_49 ayanāṃśa frame)",
+    variant,
   }
+}
+
+/** All documented Moon-table conventions in parallel (main = bpns). */
+export function computeBhinnaSarvaVariants(grahaLons: Record<string, number>, lagnaLonDeg: number): AshtakavargaVariants {
+  const out = {} as AshtakavargaVariants
+  for (const v of AV_VARIANT_IDS) out[v] = computeBhinnaSarva(grahaLons, lagnaLonDeg, v)
+  return out
 }

@@ -429,7 +429,7 @@ def compute_trimurti_views(k_meridian: float, pole_func, observer_lat_deg: float
         NAKSHATRA_NAMES,
     )
     from .vargas import compute_all_vargas
-    from .ashtakavarga import compute_bhinna_sarva
+    from .ashtakavarga import compute_bhinna_sarva_variants
 
     out = {}
     for (op_id, en, hi, sub, offset, icon, tag) in TRIMURTI_OPERATORS:
@@ -449,10 +449,12 @@ def compute_trimurti_views(k_meridian: float, pole_func, observer_lat_deg: float
             g: compute_all_vargas(graha_lons[g]) for g in GRAHA_NAMES
         }
 
-        # Aṣṭakavarga — bhinna (7 × 12) + sarva (12) + total 337-class
+        # Aṣṭakavarga — bhinna (7 × 12) + sarva (12) + total 337-class.
+        # ALL documented Moon-table conventions computed in parallel
+        # (bpns = main, aligned; phaladipika · varahamihira alongside).
         jd = kali_civil_days_to_jd(k_shifted)
         lagna_lon = sidereal_ascendant_deg(jd, observer_lat_deg, observer_lon_deg)
-        ashtakavarga = compute_bhinna_sarva(graha_lons, lagna_lon)
+        av_variants = compute_bhinna_sarva_variants(graha_lons, lagna_lon)
 
         out[op_id] = {
             "operator_id": op_id,
@@ -474,7 +476,8 @@ def compute_trimurti_views(k_meridian: float, pole_func, observer_lat_deg: float
             "moon_lon_deg":     round(graha_lons["Moon"], 4),
             # v1.9.0 — per-graha vargas + Aṣṭakavarga
             "vargas_grahas":    vargas_grahas,              # {graha: [21 sign-idx]}
-            "ashtakavarga":     ashtakavarga,               # {bhinna, sarva, sarva_total}
+            "ashtakavarga":     av_variants["bpns"],        # main · BPHS (aligned)
+            "ashtakavarga_variants": av_variants,           # bpns/phd/varahamihira
         }
     return out
 
