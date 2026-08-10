@@ -19,12 +19,29 @@ def ghadi_at(
     year: int, month: int, day: int,
     hour: int = 0, minute: int = 0, second: float = 0.0,
     tz_h: float = 5.5,
+    observer_lat_deg: float = None,
+    observer_lon_deg: float = None,
 ) -> dict:
-    """Vedic ghaḍī for any civil instant."""
-    return kala_substrate_stamp(year, month, day, hour, minute, second, tz_h)
+    """Vedic ghaḍī for any civil instant.
+
+    `observer_lat_deg`/`observer_lon_deg` override the default Ujjayinī
+    observer for the single-observer-mode Aṣṭakavarga lagna.
+    """
+    if observer_lat_deg is None and observer_lon_deg is None:
+        return kala_substrate_stamp(year, month, day, hour, minute, second, tz_h)
+    from .substrate import OBSERVER_DEFAULT_LAT_DEG, OBSERVER_DEFAULT_LON_DEG
+    return kala_substrate_stamp(
+        year, month, day, hour, minute, second, tz_h,
+        observer_lat_deg if observer_lat_deg is not None else OBSERVER_DEFAULT_LAT_DEG,
+        observer_lon_deg if observer_lon_deg is not None else OBSERVER_DEFAULT_LON_DEG,
+    )
 
 
-def ghadi_now(tz_h: float = 5.5) -> dict:
+def ghadi_now(
+    tz_h: float = 5.5,
+    observer_lat_deg: float = None,
+    observer_lon_deg: float = None,
+) -> dict:
     """Vedic ghaḍī for the current moment.
 
     Default tz is IST (+5:30, same as Kāmākhyā civil-TZ practice).
@@ -36,6 +53,7 @@ def ghadi_now(tz_h: float = 5.5) -> dict:
     return ghadi_at(
         n.year, n.month, n.day, n.hour, n.minute,
         n.second + n.microsecond / 1e6, tz_h,
+        observer_lat_deg, observer_lon_deg,
     )
 
 

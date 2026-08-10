@@ -27,7 +27,7 @@ env:
 
 jobs:
   # ─────────────────────────────────────────────────────────────────────────
-  # Python: substrate + audit + 133 pytest assertions
+  # Python: substrate + audit + 135 pytest tests
   # ─────────────────────────────────────────────────────────────────────────
   python:
     name: 🐍 Python · pytest + audit

@@ -76,6 +76,88 @@ def kali_civil_days_to_jd(kali_days: float) -> float:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# ◈ OBSERVER ASCENDANT — single-observer mode (observer lat/lon)
+#    Ported from bharat-ephemeris-offline/math-core.js (Swiss-verified
+#    closed-form, <0.1°). Frame: tropical ascendant minus effective_49
+#    ayanāṃśa (54 − shared-debt 4.8″/yr ≈ 49.2″/yr). Parity pin: at
+#    JD 2451545.0 the effective_49 ayanāṃśa = 20.513714645361112° and
+#    sidereal ascendant at 23.1765°N/75.7683°E = 75.77433699315873°.
+# ═══════════════════════════════════════════════════════════════════════════
+
+UJJAIN_LAT_DEG: float = 23.1765            # sibling-engine Ujjain fixture
+OBSERVER_DEFAULT_LAT_DEG: float = UJJAIN_LAT_DEG
+OBSERVER_DEFAULT_LON_DEG: float = UJJAIN_LON_DEG
+ARYABHATA_ZERO_JD: float = 1_903_304.75
+# Sibling engine's Mahāyuga civil-day count for the shared-debt bīja —
+# NOT MAHAYUGA_CIVIL_DAYS (1_577_917_500). Parity pin: effective_49 at
+# J2000 must equal sibling's 20.513714645361112°.
+MAHAYUGA_DAYS_SHARED_DEBT: int = 1_577_917_828
+
+
+def _mod360(d: float) -> float:
+    return d % 360.0
+
+
+def gmst_deg(jd: float) -> float:
+    """Greenwich mean sidereal time, degrees — IAU 1982 GMST (sibling engine)."""
+    t = (jd - 2_451_545) / 36_525
+    seconds = (
+        67_310.54841
+        + (876_600 * 3600 + 8_640_184.812866) * t
+        + 0.093104 * t * t
+        - 6.2e-6 * t * t * t
+    )
+    return _mod360(seconds / 240)
+
+
+def mean_obliquity_deg(jd: float) -> float:
+    """Mean obliquity of the ecliptic, degrees — IAU 1980 (sibling engine)."""
+    t = (jd - 2_451_545) / 36_525
+    seconds = 21.448 - 46.815 * t - 0.00059 * t * t + 0.001813 * t * t * t
+    return 23 + 26 / 60 + seconds / 3600
+
+
+def local_sidereal_time_deg(jd: float, longitude_east_deg: float) -> float:
+    """Local sidereal time, degrees = GMST + east longitude."""
+    return _mod360(gmst_deg(jd) + longitude_east_deg)
+
+
+def ayanamsha_effective49_deg(jd: float) -> float:
+    """Effective_49 ayanāṃśa (deg) = 54 − shared-debt 4.8″/yr ≈ 49.2″/yr."""
+    shared_debt_arcsec_per_year = (-16 * 360 * 3600 * 365.25) / MAHAYUGA_DAYS_SHARED_DEBT
+    effective_arcsec_per_year = 54 + shared_debt_arcsec_per_year
+    delta_years = (jd - ARYABHATA_ZERO_JD) / 365.25
+    return delta_years * effective_arcsec_per_year / 3600
+
+
+def tropical_ascendant_deg(jd: float, latitude_deg: float, longitude_east_deg: float) -> float:
+    """Tropical ascendant (deg) from JD + observer lat/lon — sibling closed-form."""
+    if not math.isfinite(latitude_deg) or abs(latitude_deg) >= 90:
+        raise ValueError("Latitude must be finite and strictly between -90 and 90 degrees")
+    if not math.isfinite(longitude_east_deg) or abs(longitude_east_deg) > 180:
+        raise ValueError("Longitude must be finite and inside [-180, 180]")
+    rad = math.pi / 180
+    deg = 180 / math.pi
+    lst = local_sidereal_time_deg(jd, longitude_east_deg)
+    ramc = lst * rad
+    epsilon = mean_obliquity_deg(jd) * rad
+    latitude = latitude_deg * rad
+    numerator = math.cos(ramc)
+    denominator = -(math.sin(ramc) * math.cos(epsilon) + math.tan(latitude) * math.sin(epsilon))
+    ascendant = _mod360(math.atan2(numerator, denominator) * deg)
+    lam = ascendant * rad
+    right_ascension = math.atan2(math.sin(lam) * math.cos(epsilon), math.cos(lam)) * deg
+    if _mod360(lst - right_ascension) <= 180:
+        ascendant = _mod360(ascendant + 180)
+    return ascendant
+
+
+def sidereal_ascendant_deg(jd: float, latitude_deg: float, longitude_east_deg: float) -> float:
+    """Nirayana (sidereal) ascendant (deg) in the effective_49 frame."""
+    return _mod360(tropical_ascendant_deg(jd, latitude_deg, longitude_east_deg) - ayanamsha_effective49_deg(jd))
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # ◈ SŪRYA SIDDHĀNTA MEAN MOTIONS — all 9 grahas (Navagraha)
 # Revolutions per Mahā-yuga, verbatim from Sūrya Siddhānta 1.29–1.44.
 # Rāhu is retrograde (madhya-rāhu); Ketu is always 180° opposite Rāhu.
@@ -229,13 +311,20 @@ def shaka_year(kali_year: float) -> float:
 
 
 def samvatsara_at_kali_year(kali_year: float) -> dict:
-    """60-year Bṛhaspati-cakra saṃvatsara name + index (0–59)."""
+    """60-year Bṛhaspati-cakra saṃvatsara name + index (0–59).
+
+    ELAPSED convention: floor the Śaka year first (matches Vikrama/Śaka
+    year display and every public almanac). ``int()`` truncation would
+    diverge for negative Śaka years (pre-79 CE) — floor matches the TS
+    port and the ``(śaka + 11) mod 60`` audit anchor.
+    """
     sk = shaka_year(kali_year)
-    idx = int(sk + 11) % 60
+    sk_floor = math.floor(sk)
+    idx = (sk_floor + 11) % 60
     return {
         "index": idx,
         "name": SAMVATSARA_NAMES[idx],
-        "shaka_year": int(sk),
+        "shaka_year": sk_floor,
     }
 
 
@@ -319,7 +408,7 @@ TRIMURTI_OPERATORS = (
 )
 
 
-def compute_trimurti_views(k_meridian: float, pole_func) -> dict:
+def compute_trimurti_views(k_meridian: float, pole_func, observer_lat_deg: float = OBSERVER_DEFAULT_LAT_DEG, observer_lon_deg: float = OBSERVER_DEFAULT_LON_DEG) -> dict:
     """Compute Trimurti × pole views for one meridian + pole.
 
     Each Trimurti operator phase-shifts K → computes:
@@ -361,7 +450,9 @@ def compute_trimurti_views(k_meridian: float, pole_func) -> dict:
         }
 
         # Aṣṭakavarga — bhinna (7 × 12) + sarva (12) + total 337-class
-        ashtakavarga = compute_bhinna_sarva(graha_lons)
+        jd = kali_civil_days_to_jd(k_shifted)
+        lagna_lon = sidereal_ascendant_deg(jd, observer_lat_deg, observer_lon_deg)
+        ashtakavarga = compute_bhinna_sarva(graha_lons, lagna_lon)
 
         out[op_id] = {
             "operator_id": op_id,
@@ -593,7 +684,7 @@ MERIDIAN_CATEGORIES = (
 )
 
 
-def compute_meridian_views(kali_days_ujjain: float) -> dict:
+def compute_meridian_views(kali_days_ujjain: float, observer_lat_deg: float = OBSERVER_DEFAULT_LAT_DEG, observer_lon_deg: float = OBSERVER_DEFAULT_LON_DEG) -> dict:
     """Compute BIPOLAR parallel views for EVERY meridian in the registry.
 
     Per APEX v5 Bipolar discipline: each meridian gets BOTH Aditi (R*) and
@@ -626,8 +717,8 @@ def compute_meridian_views(kali_days_ujjain: float) -> dict:
             "day_subdivision":       vedic_time_of_day(k_m),
             # APEX v5 TRIMŪRTI × BIPOLAR — 6 views per meridian
             "trimurti": {
-                "aditi": compute_trimurti_views(k_m, vedic_time_of_day),
-                "diti":  compute_trimurti_views(k_m, vedic_time_of_day_diti),
+                "aditi": compute_trimurti_views(k_m, vedic_time_of_day, observer_lat_deg, observer_lon_deg),
+                "diti":  compute_trimurti_views(k_m, vedic_time_of_day_diti, observer_lat_deg, observer_lon_deg),
             },
         }
     return out
@@ -737,8 +828,14 @@ def kala_substrate_stamp(
     year_ce: int, month: int, day: int,
     hour: int = 0, minute: int = 0, second: float = 0.0,
     tz_h: float = 5.5,
+    observer_lat_deg: float = OBSERVER_DEFAULT_LAT_DEG,
+    observer_lon_deg: float = OBSERVER_DEFAULT_LON_DEG,
 ) -> dict:
     """Express any civil moment in the FULL Vedic substrate.
+
+    Single-observer mode: Aṣṭakavarga Lagna is the sidereal ascendant at
+    the given observer lat/lon (effective_49 ayanāṃśa frame), not the
+    Sun's sign proxy.
 
     Pipeline:
       1. Gregorian → Kāmākhyā-anchored Kali civil days
@@ -785,8 +882,8 @@ def kala_substrate_stamp(
         "day_subdivision_diti":  vedic_time_of_day_diti(kali_days),
         # Top-level Trimurti × Bipolar at Ujjain (the reference)
         "trimurti_at_ujjain": {
-            "aditi": compute_trimurti_views(kali_days, vedic_time_of_day),
-            "diti":  compute_trimurti_views(kali_days, vedic_time_of_day_diti),
+            "aditi": compute_trimurti_views(kali_days, vedic_time_of_day, observer_lat_deg, observer_lon_deg),
+            "diti":  compute_trimurti_views(kali_days, vedic_time_of_day_diti, observer_lat_deg, observer_lon_deg),
         },
         "trimurti_operators": [
             {"id": op[0], "en": op[1], "hi": op[2], "sub": op[3],
@@ -816,7 +913,7 @@ def kala_substrate_stamp(
         # values) for backward compat; new code should prefer by_meridian.
         "by_meridian": by_meridian_views(kali_days),
         # NEW v1.3.0 — full meridian registry (12 meridians × 4 categories)
-        "meridians": compute_meridian_views(kali_days),
+        "meridians": compute_meridian_views(kali_days, observer_lat_deg, observer_lon_deg),
         "meridian_groups": meridian_groups(),
         "meridian_categories": list(MERIDIAN_CATEGORIES),
         "substrate_alignment": VEDIC_TIME_SUBSTRATE,

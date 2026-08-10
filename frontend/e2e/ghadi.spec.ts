@@ -224,8 +224,7 @@ test.describe("Vedic Ghaḍī live UI", () => {
     const ujjainBA = stamp.meridians.ujjain.trimurti.aditi.brahma
     expect(ujjainBA.vargas_grahas).toBeDefined()
     expect(ujjainBA.vargas_grahas.Moon.length).toBe(21)
-    expect(ujjainBA.ashtakavarga.sarva_total).toBeGreaterThan(330)
-    expect(ujjainBA.ashtakavarga.sarva_total).toBeLessThan(345)
+    expect(ujjainBA.ashtakavarga.sarva_total).toBe(337)
   })
 
   test("14 · methodology page loads", async ({ page }) => {

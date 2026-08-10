@@ -8,7 +8,7 @@ import { defineConfig, devices } from "@playwright/test"
  * Usage:
  *   npm run e2e              — headless, runs dev server
  *   npm run e2e:ui           — Playwright UI mode
- *   BASE_URL=https://… npm run e2e   — against deployed Vercel URL (no webServer)
+ *   BASE_URL=https://… npm run e2e   — against deployed Cloud Run URL (no webServer)
  */
 const PORT = 3030
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`

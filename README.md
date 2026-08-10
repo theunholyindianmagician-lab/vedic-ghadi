@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/theunholyindianmagician-lab/vedic-ghadi/actions/workflows/ci.yml/badge.svg)](https://github.com/theunholyindianmagician-lab/vedic-ghadi/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/vedic-ghadi.svg?label=PyPI&color=d4a44c)](https://pypi.org/project/vedic-ghadi/)
-[![Live](https://img.shields.io/badge/live-vedic--ghadi.vercel.app-cf6a1e?logo=vercel)](https://vedic-ghadi.vercel.app)
+[![Live](https://img.shields.io/badge/live-ghadi.lunarluxury.in-cf6a1e?logo=googlecloud)](https://ghadi.lunarluxury.in)
 [![License](https://img.shields.io/badge/license-MIT-7a5c1f.svg)](LICENSE)
 
 > हर वैदिक काल-इकाई एक ही substrate-राशि से निकलती है — पवित्र युगादि से कलि सावन दिन।
@@ -11,9 +11,10 @@
 > **89 million sphoṭa claim-space** · 504 cells · 84 meridians × 2 poles × 3 Trimūrti
 > Per-cell: नक्षत्र · पाद · योग · करण · 9 graha-nakṣatras · 21 vargas · Aṣṭakavarga 337-bindu
 
-> **Auto-deploy:** every push to `main` triggers Vercel auto-deploy + GitHub Actions CI runs
-> pytest (133) + typecheck + Next build + Py↔TS parity + Playwright E2E (14 specs) against
-> the new live URL.
+> **Auto-deploy:** every push to `main` deploys the frontend to **Cloud Run**
+> (asia-southeast1) via Workload Identity Federation, then GitHub Actions CI runs
+> pytest (135) + substrate audit (157 checks) + typecheck + Next build +
+> Py↔TS parity + Playwright E2E (16 tests) against the fresh deploy.
 
 
 **Substrate-derived live Vedic clock — every unit traces to a single quantity:
@@ -64,7 +65,7 @@ vedic-ghadi/
 ├── frontend/                 # Next.js 14 web app
 │   ├── lib/substrate.ts     #   TS port — exact parity with Python
 │   ├── components/
-│   │   ├── GhadiClock.tsx   #   live 60-fps clock
+│   │   ├── GhadiClock.tsx   #   live clock — recomputes substrate on second change
 │   │   ├── TimeYantra.tsx   #   concentric SVG yantra
 │   │   ├── LayerCard.tsx    #   each Vedic time-layer card
 │   │   └── TimeMachine.tsx  #   pick any moment
@@ -75,7 +76,7 @@ vedic-ghadi/
 ├── scripts/
 │   ├── dev.sh               # start backend + frontend together
 │   ├── test.sh              # run all tests
-│   └── deploy.sh            # build + deploy (Vercel + Fly.io)
+│   └── deploy.sh            # build artifacts (wheel + Next build)
 ├── docker-compose.yml        # one-shot end-to-end
 ├── Dockerfile.backend
 └── Dockerfile.frontend
@@ -183,25 +184,25 @@ docker run -p 3030:3030 vedic-ghadi-web
 
 ## Deploy
 
-### Vercel (frontend)
+### Cloud Run (production — auto-deploy from `main`)
+
+Every push to `main` deploys the frontend to **Cloud Run** in
+**asia-southeast1** (Singapore) using keyless Workload Identity Federation —
+no stored credentials. Domain: **https://ghadi.lunarluxury.in**
+
+Manual deploy (same command CI uses):
 
 ```bash
 cd frontend
-vercel
+gcloud run deploy vedic-ghadi \
+  --source . \
+  --region asia-southeast1 \
+  --allow-unauthenticated \
+  --port 8080
 ```
 
 The Next.js app has an edge `route.ts` so even without the Python backend,
 the JSON API at `/api/ghadi` works.
-
-### Fly.io / Railway / Render (backend)
-
-```bash
-cd backend
-fly launch --image-label vedic-ghadi-api
-# or any container host: image = ghcr.io/…/vedic-ghadi-api
-```
-
-Set `NEXT_PUBLIC_API_BASE` in the frontend env to point at the deployed API.
 
 ---
 
@@ -226,15 +227,15 @@ See `frontend/app/about/page.tsx` (rendered at `/about`). Brief version:
 Every push to `main` triggers:
 
 1. **GitHub Actions CI** ([.github/workflows/ci.yml](.github/workflows/ci.yml))
-   - 🐍 Python: pytest (133 assertions) + audit_formulae.py (157 checks)
+   - 🐍 Python: pytest (135 tests) + audit_formulae.py (157 checks)
    - 🎨 Frontend: typecheck + Next.js build
    - ⚖️ Py↔TS parity: 84 meridians × 4 anchor dates
-   - 🎭 E2E: Playwright against the just-deployed Vercel URL (14 specs)
+   - 🎭 E2E: Playwright against the just-deployed Cloud Run URL (16 tests)
 
-2. **Vercel auto-deploy** (linked via GitHub App)
-   - Build settings: `frontend/` rootDirectory · `npm install --legacy-peer-deps`
-   - Production URL: <https://vedic-ghadi.vercel.app>
-   - Preview deploys for every PR
+2. **Cloud Run auto-deploy** (via Workload Identity Federation, keyless)
+   - Service: `vedic-ghadi` · region asia-southeast1 (Singapore)
+   - Production URL: <https://ghadi.lunarluxury.in>
+   - Domain mapping is configured on the Cloud Run service
 
 To run E2E locally against the live deploy:
 ```bash

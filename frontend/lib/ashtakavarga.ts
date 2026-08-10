@@ -7,19 +7,19 @@ const TABLES: Record<string, Record<string, readonly number[]>> = {
   Sun: {
     Sun:     [1, 2, 4, 7, 8, 9, 10, 11],
     Moon:    [3, 6, 10, 11],
-    Mars:    [1, 2, 4, 7, 8, 10, 11],
+    Mars:    [1, 2, 4, 7, 8, 9, 10, 11],
     Mercury: [3, 5, 6, 9, 10, 11, 12],
     Jupiter: [5, 6, 9, 11],
     Venus:   [6, 7, 12],
-    Saturn:  [1, 2, 4, 7, 8, 10, 11],
+    Saturn:  [1, 2, 4, 7, 8, 9, 10, 11],
     Lagna:   [3, 4, 6, 10, 11, 12],
   },
   Moon: {
     Sun:     [3, 6, 7, 8, 10, 11],
     Moon:    [1, 3, 6, 7, 9, 10, 11],
-    Mars:    [2, 3, 5, 6, 9, 10, 11],
+    Mars:    [2, 3, 5, 6, 10, 11],
     Mercury: [1, 3, 4, 5, 7, 8, 10, 11],
-    Jupiter: [1, 4, 7, 8, 10, 11, 12],
+    Jupiter: [1, 2, 4, 7, 8, 10, 11],
     Venus:   [3, 4, 5, 7, 9, 10, 11],
     Saturn:  [3, 5, 6, 11],
     Lagna:   [3, 6, 10, 11],
@@ -85,6 +85,7 @@ export interface AshtakavargaResult {
   sarva_total: number                    // ~337
   per_graha_totals: Record<AVGraha, number>
   lagna_sign: number
+  lagna_lon_deg: number
   lagna_proxy: string
 }
 
@@ -101,12 +102,12 @@ function bhinnaAV(target: AVGraha, grahaSigns: Record<string, number>, lagnaSign
   return bindus
 }
 
-export function computeBhinnaSarva(grahaLons: Record<string, number>): AshtakavargaResult {
+export function computeBhinnaSarva(grahaLons: Record<string, number>, lagnaLonDeg: number): AshtakavargaResult {
   const grahaSigns: Record<string, number> = {}
   for (const g of Object.keys(grahaLons)) {
     grahaSigns[g] = ((Math.floor(grahaLons[g] / 30) % 12) + 12) % 12
   }
-  const lagnaSign = grahaSigns["Sun"]
+  const lagnaSign = ((Math.floor(lagnaLonDeg / 30) % 12) + 12) % 12
 
   const bhinna: Record<AVGraha, number[]> = {} as Record<AVGraha, number[]>
   for (const g of ASHTAKAVARGA_GRAHAS) {
@@ -129,6 +130,7 @@ export function computeBhinnaSarva(grahaLons: Record<string, number>): Ashtakava
     sarva_total: sarva.reduce((a, b) => a + b, 0),
     per_graha_totals,
     lagna_sign: lagnaSign,
-    lagna_proxy: "Sūrya-Lagna (Sun's sign — substrate has no observer ascendant)",
+    lagna_lon_deg: lagnaLonDeg,
+    lagna_proxy: "observer ascendant (effective_49 ayanāṃśa frame)",
   }
 }

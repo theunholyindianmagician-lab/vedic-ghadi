@@ -58,6 +58,10 @@ def _ts_stamp(args: tuple[int, int, int, int, int, float, float]) -> dict:
     (2026, 1, 1, 0, 0, 0.0, 5.5),      # Year start
     (2000, 6, 15, 12, 30, 0.0, 5.5),   # Y2K
     (1947, 8, 15, 0, 0, 0.0, 5.5),     # Independence
+    (79, 1, 1, 12, 0, 0.0, 5.5),       # Pre-79 CE edge — negative Śaka years
+    (1, 1, 1, 12, 0, 0.0, 5.5),        # Pre-79 CE edge — negative Śaka years
+    (0, 1, 1, 12, 0, 0.0, 5.5),        # Pre-79 CE edge — year-zero crossover
+    (-100, 6, 1, 12, 0, 0.0, 5.5),     # Pre-79 CE edge — deep negative
 ])
 def test_python_ts_parity(args):
     py = ghadi_at(*args)
@@ -120,3 +124,28 @@ def test_python_ts_parity(args):
         assert p["lon_deg"] == t["lon_deg"], f"lon differs at {mid}"
         assert p["category"] == t["category"], f"category differs at {mid}"
         assert abs(p["kali_civil_days"] - t["kali_civil_days"]) < 1e-5, f"K differs at {mid}"
+
+
+@pytest.mark.skipif(not HAVE_NODE, reason="node ≥ 22 not available (needs --experimental-strip-types)")
+@pytest.mark.parametrize("args", [
+    (2026, 5, 17, 16, 0, 0.0, 5.5),    # Today's anchor
+    (2000, 6, 15, 12, 30, 0.0, 5.5),   # Y2K
+    (79, 1, 1, 12, 0, 0.0, 5.5),       # Pre-79 CE edge — negative Śaka years
+    (0, 1, 1, 12, 0, 0.0, 5.5),        # Pre-79 CE edge — year-zero crossover
+])
+def test_av_parity(args):
+    """Aṣṭakavarga must be byte-identical Py vs TS — every cell, every sign."""
+    py = ghadi_at(*args)
+    ts = _ts_stamp(args)
+    for mid in py["meridians"]:
+        for pole in ("aditi", "diti"):
+            for op in ("brahma", "vishnu", "mahesh"):
+                pa = py["meridians"][mid]["trimurti"][pole][op]["ashtakavarga"]
+                ta = ts["meridians"][mid]["trimurti"][pole][op]["ashtakavarga"]
+                key = f"{mid}/{pole}/{op}"
+                assert pa["bhinna"] == ta["bhinna"], f"bhinna differs at {key}"
+                assert pa["sarva"] == ta["sarva"], f"sarva differs at {key}"
+                assert pa["sarva_total"] == ta["sarva_total"], f"sarva_total differs at {key}"
+                assert pa["per_graha_totals"] == ta["per_graha_totals"], f"per_graha_totals differs at {key}"
+                assert pa["lagna_sign"] == ta["lagna_sign"], f"lagna_sign differs at {key}"
+

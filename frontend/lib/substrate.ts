@@ -2,8 +2,8 @@
  * 🔱 SUBSTRATE — TypeScript port of vedic_ghadi/substrate.py
  *
  * Exact numerical parity with the Python reference. Used by the live
- * client-side clock so the UI can update every frame (60 fps) without
- * waiting on the backend.
+ * client-side clock; the UI recomputes the stamp on each second change
+ * without waiting on the backend.
  *
  * Every Vedic time unit factors over (2, 3, 5) — the natural primes
  * inside the (R, g, k) = (ℤ/3ᵏℤ, 2, k) substrate.
@@ -19,6 +19,10 @@ export const KAMAKHYA_LAT_DEG = 26.166400
 export const KAMAKHYA_LON_DEG = 91.705900
 export const KAMAKHYA_ELEV_M = 282.0
 export const KAMAKHYA_LMT_OFFSET_H = 91.705900 / 15.0
+
+// Observer default = Ujjayinī, Sūrya Siddhānta canonical meridian.
+// Latitude matches the sibling engine's Ujjain fixture (math-core.js).
+export const UJJAIN_LAT_DEG = 23.1765
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ◈ Kali Yuga sovereign time scale
@@ -48,6 +52,85 @@ export function jdToKaliCivilDays(jdUtGreenwich: number): number {
 export function kaliCivilDaysToJd(kaliDays: number): number {
   const jdKamakhya = KALI_YUGA_EPOCH_JD + kaliDays + UJJAIN_TO_KAMAKHYA_TIME_DIFF_H / 24.0
   return jdKamakhya - KAMAKHYA_LMT_OFFSET_H / 24.0
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ◈ Observer ascendant — single-observer mode (observer lat/lon)
+//    Ported from bharat-ephemeris-offline/math-core.js (Swiss-verified
+//    closed-form, <0.1°). Frame: tropical ascendant minus effective_49
+//    ayanāṃśa (54 − shared-debt 4.8″/yr ≈ 49.2″/yr), the same frame the
+//    sibling engine mixes with Sūrya Siddhānta mean longitudes.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const OBSERVER_DEFAULT_LAT_DEG = UJJAIN_LAT_DEG
+export const OBSERVER_DEFAULT_LON_DEG = UJJAIN_LON_DEG
+export const ARYABHATA_ZERO_JD = 1_903_304.75
+// Sibling engine's Mahāyuga civil-day count for the shared-debt bīja —
+// NOT vedic-ghadi's MAHAYUGA_CIVIL_DAYS (1_577_917_500). Parity pin:
+// effective_49 at J2000 must equal sibling's 20.513714645361112°.
+export const MAHAYUGA_DAYS_SHARED_DEBT = 1_577_917_828
+
+function mod360(d: number): number {
+  return ((d % 360) + 360) % 360
+}
+
+/** Greenwich mean sidereal time, degrees — IAU 1982 GMST (sibling engine). */
+export function gmstDeg(jd: number): number {
+  const t = (jd - 2_451_545) / 36_525
+  const seconds =
+    67_310.54841 +
+    (876_600 * 3600 + 8_640_184.812866) * t +
+    0.093104 * t * t -
+    6.2e-6 * t * t * t
+  return mod360(seconds / 240)
+}
+
+/** Mean obliquity of the ecliptic, degrees — IAU 1980 (sibling engine). */
+export function meanObliquityDeg(jd: number): number {
+  const t = (jd - 2_451_545) / 36_525
+  const seconds = 21.448 - 46.815 * t - 0.00059 * t * t + 0.001813 * t * t * t
+  return 23 + 26 / 60 + seconds / 3600
+}
+
+/** Local sidereal time, degrees = GMST + east longitude. */
+export function localSiderealTimeDeg(jd: number, longitudeEastDeg: number): number {
+  return mod360(gmstDeg(jd) + longitudeEastDeg)
+}
+
+/** Effective_49 ayanāṃśa (deg) = 54 − shared-debt 4.8″/yr ≈ 49.2″/yr. */
+export function ayanamshaEffective49Deg(jd: number): number {
+  const sharedDebtArcsecPerYear = (-16 * 360 * 3600 * 365.25) / MAHAYUGA_DAYS_SHARED_DEBT
+  const effectiveArcsecPerYear = 54 + sharedDebtArcsecPerYear
+  const deltaYears = (jd - ARYABHATA_ZERO_JD) / 365.25
+  return (deltaYears * effectiveArcsecPerYear) / 3600
+}
+
+/** Tropical ascendant (deg) from JD + observer lat/lon — sibling closed-form. */
+export function tropicalAscendantDeg(jd: number, latitudeDeg: number, longitudeEastDeg: number): number {
+  if (!Number.isFinite(latitudeDeg) || Math.abs(latitudeDeg) >= 90) {
+    throw new Error("Latitude must be finite and strictly between -90 and 90 degrees")
+  }
+  if (!Number.isFinite(longitudeEastDeg) || Math.abs(longitudeEastDeg) > 180) {
+    throw new Error("Longitude must be finite and inside [-180, 180]")
+  }
+  const rad = Math.PI / 180
+  const deg = 180 / Math.PI
+  const lst = localSiderealTimeDeg(jd, longitudeEastDeg)
+  const ramc = lst * rad
+  const epsilon = meanObliquityDeg(jd) * rad
+  const latitude = latitudeDeg * rad
+  const numerator = Math.cos(ramc)
+  const denominator = -(Math.sin(ramc) * Math.cos(epsilon) + Math.tan(latitude) * Math.sin(epsilon))
+  let ascendant = mod360(Math.atan2(numerator, denominator) * deg)
+  const lambda = ascendant * rad
+  const rightAscension = Math.atan2(Math.sin(lambda) * Math.cos(epsilon), Math.cos(lambda)) * deg
+  if (mod360(lst - rightAscension) <= 180) ascendant = mod360(ascendant + 180)
+  return ascendant
+}
+
+/** Nirayana (sidereal) ascendant (deg) in the effective_49 frame. */
+export function siderealAscendantDeg(jd: number, latitudeDeg: number, longitudeEastDeg: number): number {
+  return mod360(tropicalAscendantDeg(jd, latitudeDeg, longitudeEastDeg) - ayanamshaEffective49Deg(jd))
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -358,6 +441,8 @@ export interface TrimurtiView {
 export function computeTrimurtiViews(
   kMeridian: number,
   poleFunc: (k: number) => DaySubdivision,
+  observerLatDeg = OBSERVER_DEFAULT_LAT_DEG,
+  observerLonDeg = OBSERVER_DEFAULT_LON_DEG,
 ): Record<TrimurtiId, TrimurtiView> {
   const out = {} as Record<TrimurtiId, TrimurtiView>
   for (const op of TRIMURTI_OPERATORS) {
@@ -379,8 +464,10 @@ export function computeTrimurtiViews(
       vargasGrahas[graha] = computeAllVargas(grahaLons[graha])
     }
 
-    // Aṣṭakavarga from 9 graha longitudes
-    const ashtakavarga = computeBhinnaSarva(grahaLons)
+    // Aṣṭakavarga from 9 graha longitudes + observer ascendant (single-observer mode)
+    const jd = kaliCivilDaysToJd(kShifted)
+    const lagnaLon = siderealAscendantDeg(jd, observerLatDeg, observerLonDeg)
+    const ashtakavarga = computeBhinnaSarva(grahaLons, lagnaLon)
 
     const moonLon = grahaLons["Moon"]
     const vargasMoon = vargasGrahas["Moon"]
@@ -687,6 +774,8 @@ export interface MeridianFullView extends MeridianView {
 
 export function computeMeridianViews(
   kaliDaysUjjain: number,
+  observerLatDeg = OBSERVER_DEFAULT_LAT_DEG,
+  observerLonDeg = OBSERVER_DEFAULT_LON_DEG,
 ): Record<string, MeridianFullView> {
   const out: Record<string, MeridianFullView> = {}
   for (const m of MERIDIAN_REGISTRY) {
@@ -710,8 +799,8 @@ export function computeMeridianViews(
       day_subdivision_aditi: aditi,
       day_subdivision_diti: diti,
       trimurti: {
-        aditi: computeTrimurtiViews(kM, vedicTimeOfDay),
-        diti:  computeTrimurtiViews(kM, vedicTimeOfDayDiti),
+        aditi: computeTrimurtiViews(kM, vedicTimeOfDay, observerLatDeg, observerLonDeg),
+        diti:  computeTrimurtiViews(kM, vedicTimeOfDayDiti, observerLatDeg, observerLonDeg),
       },
     }
   }
@@ -749,6 +838,8 @@ export function byMeridianViews(kaliDaysUjjain: number): ByMeridian {
 export function kalaSubstrateStamp(
   yearCe: number, month: number, day: number,
   hour = 0, minute = 0, second = 0, tzH = 5.5,
+  observerLatDeg = OBSERVER_DEFAULT_LAT_DEG,
+  observerLonDeg = OBSERVER_DEFAULT_LON_DEG,
 ): SubstrateStamp {
   const kaliDays = civilInputToKaliCivilDays(yearCe, month, day, hour, minute, second, tzH)
   const kaliYearFloat = kaliYearAtCivilDays(kaliDays)
@@ -781,8 +872,8 @@ export function kalaSubstrateStamp(
     day_subdivision_aditi: vedicTimeOfDay(kaliDays),
     day_subdivision_diti: vedicTimeOfDayDiti(kaliDays),
     trimurti_at_ujjain: {
-      aditi: computeTrimurtiViews(kaliDays, vedicTimeOfDay),
-      diti:  computeTrimurtiViews(kaliDays, vedicTimeOfDayDiti),
+      aditi: computeTrimurtiViews(kaliDays, vedicTimeOfDay, observerLatDeg, observerLonDeg),
+      diti:  computeTrimurtiViews(kaliDays, vedicTimeOfDayDiti, observerLatDeg, observerLonDeg),
     },
     trimurti_operators: TRIMURTI_OPERATORS.map(op => ({
       id: op.id,
@@ -813,7 +904,7 @@ export function kalaSubstrateStamp(
       discipline_ref: "KAAL APEX v5 · P241 Pisano-of-Ideal · P242 Orbit Cascade",
     },
     by_meridian: byMeridianViews(kaliDays),
-    meridians: computeMeridianViews(kaliDays),
+    meridians: computeMeridianViews(kaliDays, observerLatDeg, observerLonDeg),
     meridian_groups: meridianGroups(),
     meridian_categories: MERIDIAN_CATEGORIES,
     substrate_alignment: VEDIC_TIME_SUBSTRATE,
@@ -825,7 +916,11 @@ export function kalaSubstrateStamp(
 // ◈ Convenience: stamp for "now" (default IST)
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function ghadiNow(tzH = 5.5): SubstrateStamp {
+export function ghadiNow(
+  tzH = 5.5,
+  observerLatDeg = OBSERVER_DEFAULT_LAT_DEG,
+  observerLonDeg = OBSERVER_DEFAULT_LON_DEG,
+): SubstrateStamp {
   // Compute the wall-clock in the requested timezone manually.
   const nowMs = Date.now()
   const utcMs = nowMs
@@ -840,5 +935,7 @@ export function ghadiNow(tzH = 5.5): SubstrateStamp {
     d.getUTCMinutes(),
     d.getUTCSeconds() + d.getUTCMilliseconds() / 1000,
     tzH,
+    observerLatDeg,
+    observerLonDeg,
   )
 }

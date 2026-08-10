@@ -823,6 +823,7 @@ function SaptamukhiPanel({
 
           <PanelGroup title="अष्टकवर्ग · ASHTAKAVARGA">
             <PanelKV k="Sarva total" v={String(av?.sarva_total ?? "—")} sub="0..337 bindu strength meter" />
+            <PanelKV k="लग्न · Lagna" v={av?.lagna_sign !== undefined ? `rāśi ${av.lagna_sign + 1} · ${av?.lagna_lon_deg?.toFixed(4) ?? "—"}°` : "—"} sub={av?.lagna_proxy ?? "observer ascendant"} />
             <AshtakavargaBars av={av} />
           </PanelGroup>
 
@@ -874,12 +875,12 @@ function PanelKV({ k, v, sub, mono }: { k: string; v: string; sub?: string; mono
 }
 
 function AshtakavargaBars({ av }: { av: any }) {
-  if (!av?.bhinna_totals) return null
+  if (!av?.per_graha_totals) return null
   const planets = ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn"]
   return (
     <div className="mt-2 space-y-1">
       {planets.map(p => {
-        const v = av.bhinna_totals[p] ?? 0
+        const v = av.per_graha_totals[p] ?? 0
         const pct = Math.min(100, (v / 56) * 100)   // 56 is max per-planet bhinna
         const meta = PLANET_SYMBOL[p]
         return (

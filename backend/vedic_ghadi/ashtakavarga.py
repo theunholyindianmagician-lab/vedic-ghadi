@@ -13,6 +13,19 @@ Canonical totals (sum across 12 signs of each graha's Bhinna-AV):
   Venus = 52 · Saturn = 39
   Sum (Sarva) = 337
 
+CONVENTION / SOURCES (pinned 2026-08-10 against primary texts):
+  Primary = BPHS Ch. 66 (Santhanam translation, archive.org full text).
+  Cross-checked row-by-row against: P.V.R. Narasimha Rao's BPHS tables,
+  Phaladīpikā Ch. 23 verse (siva.sh), and M.S. Mehta's ashtakavarga tables.
+  All 56 rows agree EXCEPT two documented Moon-table transpositions where
+  BPHS and Phaladīpikā differ:
+    - Moon-from-Mars: BPHS = (2,3,5,6,10,11); Phaladīpikā adds the 9.
+    - Moon-from-Jupiter: BPHS = Phaladīpikā-main = (1,2,4,7,8,10,11);
+      Varāhamihira variant (Phaladīpikā footnote) = (1,4,7,8,10,11,12).
+  This table follows BPHS (the oracle's declared anchor). Earlier code was a
+  HYBRID that took the 9 in BOTH Moon-from-Moon (BPHS) and Moon-from-Mars
+  (Phaladīpikā) → Moon totalled 50 instead of 49.
+
 In this implementation we use SŪRYA-LAGNA (Sun's sign) as Lagna proxy
 because the substrate doesn't compute observer ascendant (no lat/lon).
 """
@@ -29,20 +42,20 @@ ASHTAKAVARGA_TABLES = {
     "Sun": {
         "Sun":     (1, 2, 4, 7, 8, 9, 10, 11),
         "Moon":    (3, 6, 10, 11),
-        "Mars":    (1, 2, 4, 7, 8, 10, 11),
+        "Mars":    (1, 2, 4, 7, 8, 9, 10, 11),
         "Mercury": (3, 5, 6, 9, 10, 11, 12),
         "Jupiter": (5, 6, 9, 11),
         "Venus":   (6, 7, 12),
-        "Saturn":  (1, 2, 4, 7, 8, 10, 11),
+        "Saturn":  (1, 2, 4, 7, 8, 9, 10, 11),
         "Lagna":   (3, 4, 6, 10, 11, 12),
     },
     # ── CHANDRA AṢṬAKAVARGA ───────────────────────────────────────────
     "Moon": {
         "Sun":     (3, 6, 7, 8, 10, 11),
         "Moon":    (1, 3, 6, 7, 9, 10, 11),
-        "Mars":    (2, 3, 5, 6, 9, 10, 11),
+        "Mars":    (2, 3, 5, 6, 10, 11),
         "Mercury": (1, 3, 4, 5, 7, 8, 10, 11),
-        "Jupiter": (1, 4, 7, 8, 10, 11, 12),
+        "Jupiter": (1, 2, 4, 7, 8, 10, 11),
         "Venus":   (3, 4, 5, 7, 9, 10, 11),
         "Saturn":  (3, 5, 6, 11),
         "Lagna":   (3, 6, 10, 11),
@@ -120,11 +133,13 @@ def bhinna_ashtakavarga(target_graha: str, graha_signs: dict, lagna_sign: int) -
     return bindus
 
 
-def compute_bhinna_sarva(graha_lons: dict) -> dict:
-    """Compute full Aṣṭakavarga from 9-graha longitudes dict.
+def compute_bhinna_sarva(graha_lons: dict, lagna_lon_deg: float = None) -> dict:
+    """Compute full Aṣṭakavarga from 9-graha longitudes dict + observer lagna.
 
-    Uses Sūrya-Lagna (Sun's sign) as Lagna proxy since substrate doesn't
-    compute observer ascendant.
+    Single-observer mode: Lagna is the sidereal ascendant (effective_49
+    frame) at the observer's latitude/longitude, NOT the Sun's sign.
+    `lagna_lon_deg=None` keeps the legacy Sūrya-Lagna proxy (backward
+    compatible for callers that don't pass an observer).
 
     Returns:
         {
@@ -132,12 +147,19 @@ def compute_bhinna_sarva(graha_lons: dict) -> dict:
           "sarva":  [12 totals],                     # sum across 7 grahas
           "sarva_total": int,                        # sum of sarva = ~337
           "per_graha_totals": {graha: int},          # sum per graha
-          "lagna_sign": int,                         # Sun-sign used as proxy
+          "lagna_sign": int,                         # observer-ascendant sign
+          "lagna_lon_deg": float,                    # observer sidereal ascendant
+          "lagna_proxy": str,                        # frame description
         }
     """
     # Convert longitudes → sign indices (0-11)
     graha_signs = {g: int(graha_lons[g] // 30) % 12 for g in graha_lons}
-    lagna_sign = graha_signs["Sun"]  # Sūrya-Lagna proxy
+    if lagna_lon_deg is None:
+        lagna_sign = graha_signs["Sun"]  # Sūrya-Lagna proxy (legacy)
+        lagna_proxy = "Sūrya-Lagna (Sun's sign — no observer passed)"
+    else:
+        lagna_sign = int(lagna_lon_deg // 30) % 12
+        lagna_proxy = "observer ascendant (effective_49 ayanāṃśa frame)"
 
     bhinna = {}
     for graha in ASHTAKAVARGA_GRAHAS:
@@ -157,7 +179,8 @@ def compute_bhinna_sarva(graha_lons: dict) -> dict:
         "sarva_total": sum(sarva),
         "per_graha_totals": per_graha_totals,
         "lagna_sign": lagna_sign,
-        "lagna_proxy": "Sūrya-Lagna (Sun's sign — substrate has no observer ascendant)",
+        "lagna_lon_deg": lagna_lon_deg,
+        "lagna_proxy": lagna_proxy,
     }
 
 

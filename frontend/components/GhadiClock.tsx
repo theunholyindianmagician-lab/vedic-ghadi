@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
-import { kalaSubstrateStamp, type SubstrateStamp } from "@/lib/substrate"
+import { useEffect, useState, useCallback, useRef } from "react"
+import { kalaSubstrateStamp, OBSERVER_DEFAULT_LAT_DEG, OBSERVER_DEFAULT_LON_DEG, type SubstrateStamp } from "@/lib/substrate"
 import { TimeYantra } from "./TimeYantra"
 import { LayerCard } from "./LayerCard"
 import { TimeMachine } from "./TimeMachine"
@@ -58,10 +58,27 @@ export function GhadiClock() {
   const [mounted, setMounted] = useState(false)
   const [frozen, setFrozen] = useState<string | null>(null)
   const [stamp, setStamp] = useState<SubstrateStamp>(() => liveStamp())
+  const [observerLat, setObserverLat] = useState(OBSERVER_DEFAULT_LAT_DEG)
+  const [observerLon, setObserverLon] = useState(OBSERVER_DEFAULT_LON_DEG)
+  const lastSecRef = useRef(-1)
+  const frozenCacheRef = useRef<{ iso: string; lat: number; lon: number; stamp: SubstrateStamp } | null>(null)
 
   const tick = useCallback(() => {
-    setStamp(frozen ? frozenStamp(frozen) : liveStamp())
-  }, [frozen])
+    if (frozen) {
+      if (!frozenCacheRef.current || frozenCacheRef.current.iso !== frozen || frozenCacheRef.current.lat !== observerLat || frozenCacheRef.current.lon !== observerLon) {
+        frozenCacheRef.current = { iso: frozen, lat: observerLat, lon: observerLon, stamp: frozenStamp(frozen, observerLat, observerLon) }
+      }
+      setStamp(frozenCacheRef.current.stamp)
+      return
+    }
+    frozenCacheRef.current = null
+    // Substrate recompute is O(meridians × trimurti views); the display is
+    // whole-second granular, so only recompute when the shown second changes.
+    const s = Math.floor(Date.now() / 1000)
+    if (s === lastSecRef.current) return
+    lastSecRef.current = s
+    setStamp(liveStamp(observerLat, observerLon))
+  }, [frozen, observerLat, observerLon])
 
   // Client-only mount — avoid SSR/CSR hydration mismatch on live K values.
   // The substrate computes K from Date.now() which differs between server-render
@@ -242,6 +259,13 @@ export function GhadiClock() {
 
       <FormulaePanel stamp={stamp} />
 
+      <ObserverControl
+        lat={observerLat}
+        lon={observerLon}
+        onLat={setObserverLat}
+        onLon={setObserverLon}
+      />
+
       <TimeMachine
         initialIso={frozen ?? initialIso}
         onChange={setFrozen}
@@ -356,7 +380,50 @@ function SubstrateFooter() {
 
 function pad(n: number) { return n.toString().padStart(2, "0") }
 
-function liveStamp(): SubstrateStamp {
+/** Single-observer mode: Aṣṭakavarga lagna is the sidereal ascendant at this place. */
+function ObserverControl({
+  lat, lon, onLat, onLon,
+}: {
+  lat: number; lon: number; onLat: (v: number) => void; onLon: (v: number) => void
+}) {
+  return (
+    <section className="mt-10 mx-auto max-w-xl">
+      <div className="rounded-sm border border-gold-700/40 bg-ink-900/40 px-5 py-4">
+        <div className="text-center text-xs font-display tracking-[0.25em] text-gold-400">
+          🧭 पर्यवेक्षक · OBSERVER · लग्न
+        </div>
+        <div className="mt-1 text-center text-[11px] italic text-gold-600">
+          Aṣṭakavarga Lagna = sidereal ascendant at this place (effective_49 ayanāṃśa)
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] tracking-wider text-gold-500">अक्षांश · LATITUDE (°N+)</span>
+            <input
+              type="number" step="0.01" min={-89.99} max={89.99}
+              value={lat}
+              onChange={e => onLat(Number(e.target.value))}
+              className="w-full rounded-sm border border-gold-700/40 bg-ink-900 px-2 py-1.5 font-mono text-sm text-gold-200"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] tracking-wider text-gold-500">रेखांश · LONGITUDE (°E+)</span>
+            <input
+              type="number" step="0.01" min={-180} max={180}
+              value={lon}
+              onChange={e => onLon(Number(e.target.value))}
+              className="w-full rounded-sm border border-gold-700/40 bg-ink-900 px-2 py-1.5 font-mono text-sm text-gold-200"
+            />
+          </label>
+        </div>
+        <div className="mt-2 text-center text-[10px] font-mono text-gold-700">
+          default · उज्जयिनी {OBSERVER_DEFAULT_LAT_DEG.toFixed(4)}°N {OBSERVER_DEFAULT_LON_DEG.toFixed(4)}°E
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function liveStamp(observerLat = OBSERVER_DEFAULT_LAT_DEG, observerLon = OBSERVER_DEFAULT_LON_DEG): SubstrateStamp {
   const tzH = 5.5
   const tzMs = Date.now() + tzH * 3600 * 1000
   const d = new Date(tzMs)
@@ -368,15 +435,17 @@ function liveStamp(): SubstrateStamp {
     d.getUTCMinutes(),
     d.getUTCSeconds() + d.getUTCMilliseconds() / 1000,
     tzH,
+    observerLat,
+    observerLon,
   )
 }
 
-function frozenStamp(iso: string): SubstrateStamp {
+function frozenStamp(iso: string, observerLat = OBSERVER_DEFAULT_LAT_DEG, observerLon = OBSERVER_DEFAULT_LON_DEG): SubstrateStamp {
   const [datePart, timePart = "00:00:00"] = iso.split("T")
   const [yy, mm, dd] = datePart.split("-").map(Number)
   const tBits = timePart.split(":")
   const hh = Number(tBits[0] ?? 0)
   const mi = Number(tBits[1] ?? 0)
   const ss = Number(tBits[2] ?? 0)
-  return kalaSubstrateStamp(yy, mm, dd, hh, mi, ss, 5.5)
+  return kalaSubstrateStamp(yy, mm, dd, hh, mi, ss, 5.5, observerLat, observerLon)
 }

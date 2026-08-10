@@ -41,24 +41,24 @@ def test_sarva_is_sum_of_7_bhinna():
         assert result["sarva"][i] == s
 
 
-def test_av_totals_per_graha_in_expected_range():
-    """Each graha's Bhinna-AV total should be in canonical range (±2 of BPHS)."""
+def test_av_totals_per_graha_exact_bphs():
+    """Each graha's Bhinna-AV total must EQUAL the BPHS canonical value exactly.
+    (Tolerance here used to hide the −1 astakavarga bug — see never-lose-again.)"""
     stamp = ghadi_at(2026, 5, 17, 16, 0, 0, 5.5)
     cell = stamp["meridians"]["ujjain"]["trimurti"]["aditi"]["brahma"]
     totals = cell["ashtakavarga"]["per_graha_totals"]
-    # Our tables are encoded from BPHS; small variance acceptable
     canonical = {"Sun": 48, "Moon": 49, "Mars": 39, "Mercury": 54,
                  "Jupiter": 56, "Venus": 52, "Saturn": 39}
     for g, expected in canonical.items():
-        assert abs(totals[g] - expected) <= 3, f"{g}: got {totals[g]}, expected ~{expected}"
+        assert totals[g] == expected, f"{g}: got {totals[g]}, expected {expected}"
 
 
-def test_av_sarva_total_close_to_337():
-    """Sarva total should be ≈ 337 (canonical sum)."""
+def test_av_sarva_total_exactly_337():
+    """Sarva total must EQUAL 337 exactly (BPHS canonical sum)."""
     stamp = ghadi_at(2026, 5, 17, 16, 0, 0, 5.5)
     cell = stamp["meridians"]["ujjain"]["trimurti"]["aditi"]["brahma"]
     sarva_total = cell["ashtakavarga"]["sarva_total"]
-    assert abs(sarva_total - 337) <= 4, f"Sarva total {sarva_total} far from 337"
+    assert sarva_total == 337, f"Sarva total {sarva_total}, expected 337"
 
 
 def test_every_cell_has_ashtakavarga():
