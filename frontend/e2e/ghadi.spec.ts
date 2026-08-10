@@ -102,7 +102,7 @@ test.describe("Vedic Ghaḍī live UI", () => {
 
   test("9 · SphoṭaSunburst renders with ॐ center + 504 counter", async ({ page }) => {
     // Default is now DIAL — click 2D toggle to switch into sunburst
-    await page.locator('button:has-text("2D सूर्यमंडल")').first().click()
+    await page.locator('button:has-text("2D सूर्यमण्डल")').first().click()
     await page.waitForTimeout(500)
     await expect(page.getByText("SPHOṬA SUNBURST").first()).toBeVisible()
     // The central seal SVG text "504" should be present
@@ -111,14 +111,14 @@ test.describe("Vedic Ghaḍī live UI", () => {
   })
 
   test("10 · 3D Three.js toggle mounts a <canvas>", async ({ page }) => {
-    // Specifically click the "3D Three.js" button (not the dial which also has "3D" in name)
-    const toggleThree = page.locator('button:has-text("Three.js")').first()
+    // Specifically click the "3D · Volumetric" button (not the dial which also has "3D" in name)
+    const toggleThree = page.locator('button:has-text("3D · Volumetric")').first()
     await expect(toggleThree).toBeVisible()
     await toggleThree.click()
     // Canvas should appear (render contents are R3F-broken — we only verify mount)
     await expect(page.locator("canvas").first()).toBeVisible({ timeout: 10_000 })
-    // Toggle back to dial default
-    await page.locator('button:has-text("3D यन्त्र-घटिका")').first().click()
+    // Toggle back to sunburst default
+    await page.locator('button:has-text("2D सूर्यमण्डल")').first().click()
   })
 
   test("10a · 3D DIAL hero — saptamukhi-redesigned (4 rings + composite hand + panel + strip)", async ({ page }) => {
