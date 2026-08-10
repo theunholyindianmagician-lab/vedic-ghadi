@@ -46,9 +46,7 @@ def ghadi_now(
 
     Default tz is IST (+5:30, same as Kāmākhyā civil-TZ practice).
     """
-    tz = datetime.timezone(
-        datetime.timedelta(hours=int(tz_h), minutes=int(round((tz_h % 1) * 60))),
-    )
+    tz = datetime.timezone(datetime.timedelta(hours=tz_h))
     n = datetime.datetime.now(tz)
     return ghadi_at(
         n.year, n.month, n.day, n.hour, n.minute,

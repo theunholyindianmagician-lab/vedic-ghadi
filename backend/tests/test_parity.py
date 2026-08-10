@@ -52,6 +52,45 @@ def _ts_stamp(args: tuple[int, int, int, int, int, float, float]) -> dict:
     return json.loads(proc.stdout.decode())
 
 
+def _ts_varga(longitude: float, division: int) -> int:
+    script = (
+        'import { computeVarga } from "./frontend/lib/vargas.ts"; '
+        'process.stdout.write(String(computeVarga(Number(process.argv[1]), '
+        'Number(process.argv[2]))));'
+    )
+    try:
+        output = subprocess.check_output(
+            [
+                "node", "--experimental-strip-types", "--no-warnings",
+                "--input-type=module", "-e", script, str(longitude), str(division),
+            ],
+            cwd=REPO_ROOT,
+            stderr=subprocess.STDOUT,
+            timeout=15,
+        )
+    except subprocess.CalledProcessError as error:
+        pytest.fail(f"Node varga parity check failed:\n{error.output.decode()}")
+    return int(output.decode())
+
+
+@pytest.mark.skipif(
+    not HAVE_NODE,
+    reason="node >= 22 not available (needs --experimental-strip-types)",
+)
+@pytest.mark.parametrize(("longitude", "expected_sign"), [
+    (0.0, 0),
+    (0.5, 1),
+    (45.0, 7),
+    (359.9, 10),
+])
+def test_d60_python_typescript_parity_and_bphs_vectors(longitude, expected_sign):
+    """D60 must satisfy BPHS 6.31-6.33 identically in both implementations."""
+    from vedic_ghadi.vargas import compute_varga
+
+    assert compute_varga(longitude, 60) == expected_sign
+    assert _ts_varga(longitude, 60) == expected_sign
+
+
 @pytest.mark.skipif(not HAVE_NODE, reason="node ≥ 22 not available (needs --experimental-strip-types)")
 @pytest.mark.parametrize("args", [
     (2026, 5, 17, 16, 0, 0.0, 5.5),    # Today's anchor

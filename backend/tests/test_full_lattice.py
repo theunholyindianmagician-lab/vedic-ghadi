@@ -106,6 +106,17 @@ def test_d30_trimsamsa_irregular():
     assert compute_varga(27.5, 30) == 6    # Aries 25-30 → Venus (Libra)
 
 
+@pytest.mark.parametrize(("longitude", "expected_sign"), [
+    (0.0, 0),       # 0° Aries → Aries
+    (0.5, 1),       # 0°30' Aries → Taurus
+    (45.0, 7),      # 15° Taurus → Scorpio
+    (359.9, 10),    # 29°54' Pisces → Aquarius
+])
+def test_d60_shashtyamsa_counts_from_the_occupied_sign(longitude, expected_sign):
+    """BPHS 6.31-6.33 counts D60 parts from the occupied rashi, not Aries."""
+    assert compute_varga(longitude, 60) == expected_sign
+
+
 def test_compute_all_vargas_returns_21():
     lons = [0.0, 90.0, 180.0, 270.0, 359.0]
     for lon in lons:

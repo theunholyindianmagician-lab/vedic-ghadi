@@ -159,6 +159,12 @@ export function computeVarga(lonDeg: number, n: number): number {
     return (start + part) % 12
   }
 
+  if (n === 60) {
+    // Ṣaṣṭhyāṃśa — BPHS 6.31-6.33, 0°30' parts from the occupied sign.
+    const part = Math.floor(degInSign * 2.0)
+    return (signIdx + part) % 12
+  }
+
   // Default: pure harmonic rule
   return (signIdx * n + Math.floor(degInSign * n / 30.0)) % 12
 }

@@ -177,7 +177,11 @@ def compute_varga(lon_deg: float, n: int) -> int:
         start = (0, 4, 8)[modality]
         return (start + part) % 12
 
-    # Default: pure harmonic rule for D5, D6, D8, D11, D60, D108, and any other
+    if n == 60:   # Ṣaṣṭhyāṃśa — BPHS 6.31-6.33, 0°30' parts from occupied sign
+        part = int(deg_in_sign * 2.0)
+        return (sign_idx + part) % 12
+
+    # Default: pure harmonic rule for D5, D6, D8, D11, D108, and any other
     return (sign_idx * n + int(deg_in_sign * n / 30.0)) % 12
 
 

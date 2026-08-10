@@ -669,6 +669,8 @@ check("D30 Aries 2.5° → Mars/Aries (Triṃśāṃśa)",
       compute_varga(2.5, 30) == 0)
 check("D30 Taurus 2.5° → Venus/Taurus (Triṃśāṃśa)",
       compute_varga(32.5, 30) == 1)
+check("D60 Taurus 15° → Scorpio (Ṣaṣṭhyāṃśa counts from occupied sign)",
+      compute_varga(45.0, 60) == 7)
 
 
 section("12f · Per-graha vargas + Aṣṭakavarga — 95,256 + 42,336 facts")
@@ -701,16 +703,16 @@ all_have_av = all(
 check("All 504 cells have Aṣṭakavarga (7 bhinna + sarva)",
       all_have_av)
 
-# AV totals close to canonical
+# AV totals are position-independent constants of the declared tables.
 u_cell = ms["ujjain"]["trimurti"]["aditi"]["brahma"]
 totals = u_cell["ashtakavarga"]["per_graha_totals"]
 canonical = {"Sun": 48, "Moon": 49, "Mars": 39, "Mercury": 54,
              "Jupiter": 56, "Venus": 52, "Saturn": 39}
-totals_ok = all(abs(totals[g] - canonical[g]) <= 3 for g in canonical)
-check(f"AV per-graha totals within ±3 of canonical (sums: {sum(totals.values())})",
+totals_ok = all(totals[g] == canonical[g] for g in canonical)
+check(f"AV per-graha totals exactly canonical (sums: {sum(totals.values())})",
       totals_ok)
-check(f"Sarva total close to 337 (got {u_cell['ashtakavarga']['sarva_total']})",
-      abs(u_cell["ashtakavarga"]["sarva_total"] - 337) <= 4)
+check(f"Sarva total exactly 337 (got {u_cell['ashtakavarga']['sarva_total']})",
+      u_cell["ashtakavarga"]["sarva_total"] == 337)
 
 # Claim-space cardinalities
 check("(vi)  504 × 9 × 21 = 95,256  (per-graha vargas)",
